@@ -42,3 +42,7 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
 3. 相关算例
    1. 550/700du
 
+## CPFP2023
+1. 考虑背应力的晶体塑性模型：
+   1. materials：
+
