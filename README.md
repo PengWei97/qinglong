@@ -54,7 +54,7 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
       1. 借鉴 - ComputeElasticityTensorCPGrain & ComputePolycrystalElasticityTensor
 2. 创建一个 vectorProcessor object - TIMESTEP_BEGIN 时统计每个晶粒的平均材料参数
    1. Userobjects - FeatureMatePropVectorPostprocessor
-3. 基于 CrystalPlasticityKalidindiUpdateCopy 创建只考虑弹性能驱动的耦合模型
+3. step 3: 基于 CrystalPlasticityKalidindiUpdateCopy 创建只考虑弹性能驱动的耦合模型
    1. 复制材料类-CP
       1. 复制材料类1： ComputeElasticityTensorCP -> ComputePolycrystalElasticityTensorCP
       2. 复制材料类2： ComputePolycrystalCrystalPlasticityStress -> ComputePolycrystalMultipleCPStress
