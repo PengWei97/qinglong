@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "FeatureVolumeVectorPostprocessor.h"
+#include "FeatureVolumeVectorPostprocessorCopy.h"
 
-class FeatureMatePropVectorPostprocessor : public FeatureVolumeVectorPostprocessor
+class FeatureMatePropVectorPostprocessor : public FeatureVolumeVectorPostprocessorCopy
 {
 public:
   static InputParameters validParams();

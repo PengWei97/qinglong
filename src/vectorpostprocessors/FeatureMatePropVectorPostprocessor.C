@@ -10,7 +10,7 @@ registerMooseObject("PhaseFieldApp", FeatureMatePropVectorPostprocessor);
 InputParameters
 FeatureMatePropVectorPostprocessor::validParams()
 {
-  InputParameters params = FeatureVolumeVectorPostprocessor::validParams();
+  InputParameters params = FeatureVolumeVectorPostprocessorCopy::validParams();
 
   params.addClassDescription("This object is designed to obtain the average value of the material parameters within each grain region.");
   params.addRequiredParam<MaterialPropertyName>("mat_prop", "The name of the material property");
@@ -19,7 +19,7 @@ FeatureMatePropVectorPostprocessor::validParams()
 
 FeatureMatePropVectorPostprocessor::FeatureMatePropVectorPostprocessor(
     const InputParameters & parameters)
-  : FeatureVolumeVectorPostprocessor(parameters),
+  : FeatureVolumeVectorPostprocessorCopy(parameters),
     _mat_prop_qp(getMaterialProperty<Real>("mat_prop")),
     _mat_prop_aves(declareVector("mat_prop_aves")) 
 {
@@ -28,7 +28,7 @@ FeatureMatePropVectorPostprocessor::FeatureMatePropVectorPostprocessor(
 void
 FeatureMatePropVectorPostprocessor::execute()
 {
-  FeatureVolumeVectorPostprocessor::execute();
+  FeatureVolumeVectorPostprocessorCopy::execute();
 
   const auto num_features = _feature_counter.getTotalFeatureCount();
   _mat_prop_aves.assign(num_features, 0);
@@ -49,7 +49,7 @@ FeatureMatePropVectorPostprocessor::execute()
 void
 FeatureMatePropVectorPostprocessor::finalize()
 {
-  FeatureVolumeVectorPostprocessor::finalize();
+  FeatureVolumeVectorPostprocessorCopy::finalize();
 
   _communicator.sum(_mat_prop_aves);
 
