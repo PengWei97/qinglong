@@ -43,6 +43,19 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
    1. 550/700du
 
 ## CPFP2023
+> moose::next-dev
+> E:\PhD\prm3_GNS_mechinicalStability_coupledModeling_2023_new\p5_threeType_coupledStype_2023\moose_建模.pptx
+>
+> 
+> [notes_coupled](./graingrowth/p4_CPPF_threeCoupled2023/coupled_tests/notes_coupled.md)
+> 
 1. 考虑背应力的晶体塑性模型：
-   1. materials：
+   1. materials：ComputeElasticityTensorCPPF
+      1. 借鉴 - ComputeElasticityTensorCPGrain & ComputePolycrystalElasticityTensor
+2. 创建一个 vectorProcessor object - TIMESTEP_BEGIN 时统计每个晶粒的平均材料参数
+   1. Userobjects - FeatureMatePropVectorPostprocessor
 
+
+# 脚本
+cp /home/pw-moose/projects/moose/modules/phase_field/src/vectorpostprocessors/FeatureVolumeVectorPostprocessor.C /home/pw-moose/projects/qinglong/src/vectorpostprocessors/FeatureVolumeVectorPostprocessorCopy.C
+cp /home/pw-moose/projects/moose/modules/phase_field/include/vectorpostprocessors/FeatureVolumeVectorPostprocessor.h /home/pw-moose/projects/qinglong/include/vectorpostprocessors/FeatureVolumeVectorPostprocessorCopy.h
