@@ -4,26 +4,32 @@
 // 参考2：GrainPropertyReadFileCP + ComputeElasticityTensorCP
 
 // step 1: 基于 ComputePolycrystalElasticityTensor 创建
+// 
 
 #pragma once
 
+// ComputePolyElasticTensorCpl ~ Compute Polycrystal Elastic Tensor in Coupled
+
 #include "ComputeElasticityTensorBase.h"
-#include "GrainDataTracker.h"
-#include "RotationTensor.h"
+#include "GrainTrackerMatProp.h"
 
 class EulerAngleProvider;
 
-class ComputePolycrystalElasticityTensorCPGG : public ComputeElasticityTensorBase
+class ComputePolyElasticTensorCpl : public ComputeElasticityTensorBase
 {
 public:
   static InputParameters validParams();
 
-  ComputePolycrystalElasticityTensorCPGG(const InputParameters & parameters);
+  ComputePolyElasticTensorCpl(const InputParameters & parameters);
 
 protected:
   virtual void computeQpElasticityTensor();
 
-  const GrainDataTracker<RankFourTensor> & _grain_tracker; /// Grain tracker object
+  const GrainTrackerMatProp & _grain_tracker;
+
   const unsigned int _op_num; /// Number of order parameters
   const std::vector<const VariableValue *> _vals; /// Order parameters
+
+  /// Crystal Rotation Matrix used to rotate the slip system direction and normal
+  MaterialProperty<RankTwoTensor> & _crysrot;
 };
