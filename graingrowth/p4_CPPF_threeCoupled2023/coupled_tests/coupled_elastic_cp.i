@@ -1,5 +1,5 @@
-my_filename = "tt_cp_elastic"
-my_filename2 = "tt_cp_elastic"
+my_filename = "t0_cp_elastic"
+my_filename2 = "t0_cp_elastic"
 
 [GlobalParams]
   displacements = 'ux uy'
@@ -128,7 +128,7 @@ my_filename2 = "tt_cp_elastic"
     fill_method = symmetric9
   [../]
   [./stress]
-    type = ComputePolycrystalMultipleCPStress # ComputeMultipleCrystalPlasticityStress
+    type = computePolyMultCPElasticStressCpl # ComputeMultipleCrystalPlasticityStress
     crystal_plasticity_models = 'trial_xtalpl'
     tan_mod_type = exact
 
@@ -139,7 +139,7 @@ my_filename2 = "tt_cp_elastic"
     use_line_search = true
   [../]
   [./trial_xtalpl]
-    type = PolycrystalCPKalidindiUpdate # CrystalPlasticityKalidindiUpdate
+    type = CrystalPlasticityKalidindiUpdate # CrystalPlasticityKalidindiUpdate
     crystal_lattice_type = FCC
     number_slip_systems = 12 
     slip_sys_file_name = input_slip_sys.txt
@@ -204,7 +204,7 @@ my_filename2 = "tt_cp_elastic"
   nl_max_its = 20 # Max number of nonlinear iterations
 
   start_time = 0.0
-  num_steps = 10
+  num_steps = 3
   # end_time = 20
   dt = 0.1
 

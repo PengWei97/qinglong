@@ -48,20 +48,40 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
 >
 > 
 > [notes_coupled](./graingrowth/p4_CPPF_threeCoupled2023/coupled_tests/notes_coupled.md)
-> 
-1. 考虑背应力的晶体塑性模型：
+
+### 学习资料
+1. [Compute Finite Strain Elastic Stress](https://mooseframework.inl.gov/source/materials/crystal_plasticity/ComputeMultipleCrystalPlasticityStress.html)
+
+### 建模流程
+2. 考虑背应力的晶体塑性模型 (后续加入)：
    1. materials：ComputeElasticityTensorCPPF
       1. 借鉴 - ComputeElasticityTensorCPGrain & ComputePolycrystalElasticityTensor
-2. 创建一个 vectorProcessor object - TIMESTEP_BEGIN 时统计每个晶粒的平均材料参数
-   1. Userobjects - FeatureMatePropVectorPostprocessor
-3. step 3: 基于 CrystalPlasticityKalidindiUpdateCopy 创建只考虑弹性能驱动的耦合模型
-   1. 复制材料类-CP
-      1. 复制材料类1： ComputeElasticityTensorCP -> ComputePolycrystalElasticityTensorCP
-      2. 复制材料类2： ComputePolycrystalCrystalPlasticityStress -> ComputePolycrystalMultipleCPStress
-      3. 复制材料类3： CrystalPlasticityKalidindiUpdate -> PolycrystalCPKalidindiUpdate
-   2. 注释并学习其框架 (poly_grain_growth_2D_eldrforce.i)
+4. VectorPostprocessor: FeatureMatePropVectorPostprocessor <-- FeatureVolumeVectorPostprocessorCopy
+   1. TIMESTEP_BEGIN 时统计每个晶粒的平均材料参数
+5. UserObjects: GrainTrackerMatProp <-- GrainTrackerData + GrainTracker
+6. Materials: ComputePolyMultCPStressCpl <-- ComputePolyMultCPStressCopy + ComputeMultipleCrystalPlasticityStress + computePolyMultCPElasticStressCpl
+7. Actions: PolyElasticEnergyDrivingCpl <-- PolycrystalElasticDrivingForce
+8. Kernels: ACGGElasticEnergyCpl <-- ACGrGrElasticDrivingForce
+9. input_file: coupled_elastic_energy_cp.i ~ 只考虑弹性能3
+10. TODO-结果测试
+~~~~
 
 
 # 脚本
-cp /home/pw-moose/projects/moose/modules/phase_field/src/vectorpostprocessors/FeatureVolumeVectorPostprocessor.C /home/pw-moose/projects/qinglong/src/vectorpostprocessors/FeatureVolumeVectorPostprocessorCopy.C
-cp /home/pw-moose/projects/moose/modules/phase_field/include/vectorpostprocessors/FeatureVolumeVectorPostprocessor.h /home/pw-moose/projects/qinglong/include/vectorpostprocessors/FeatureVolumeVectorPostprocessorCopy.h
+cp /home/pw-moose/projects/moose/modules/phase_field/src/kernels/ACGrGrElasticDrivingForce.C /home/pw-moose/projects/qinglong/src/kernels/ACGGElasticEnergyCpl.C
+
+cp /home/pw-moose/projects/moose/modules/phase_field/include/kernels/ACGrGrElasticDrivingForce.h /home/pw-moose/projects/qinglong/include/kernels/ACGGElasticEnergyCpl.h
+
+mkdir /home/pw-moose/projects/qinglong/src/kernels/
+mkdir /home/pw-moose/projects/qinglong/include/kernels/
+
+# 其他
+
+1. ComputePolycrystalElasticityTensor ~ ComputeElasticityTensorBase ~ DerivativeMaterialInterface<Material>
+2. ComputeElasticityTensorCP ~ ComputeElasticityTensor ~ ComputeRotatedElasticityTensorBaseTempl<is_ad> ~ ComputeElasticityTensorBaseTempl<is_ad> ~ DerivativeMaterialInterface<Material>
+
+
+
+GrainPropertyReadFile
+
+ComputeElasticityTensorCPGrain

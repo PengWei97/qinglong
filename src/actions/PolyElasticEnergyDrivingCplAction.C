@@ -63,7 +63,7 @@ PolyElasticEnergyDrivingCplAction::act()
     // Set the actual parameters for the kernel
     InputParameters poly_params = _factory.getValidParams(kernel_type);
     poly_params.set<NonlinearVariableName>("variable") = var_name;
-    poly_params.set<MaterialPropertyName>("D_tensor_name") = D_stiff_name;
+    poly_params.set<MaterialPropertyName>("D_elastic_energy_name") = D_stiff_name;
     poly_params.set<bool>("use_displaced_mesh") = getParam<bool>("use_displaced_mesh");
 
     std::string kernel_name = "AC_ElasticEnergyCpl_" + var_name;
