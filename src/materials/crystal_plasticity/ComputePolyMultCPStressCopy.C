@@ -7,17 +7,17 @@
 //* Licensed under LGPL 2.1, please see LICENSE for details
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
-#include "ComputePolycrystalMultipleCPStress.h"
+#include "ComputePolyMultCPStressCopy.h"
 
 #include "CrystalPlasticityStressUpdateBase.h"
 #include "libmesh/utility.h"
 #include "Conversion.h"
 #include "MooseException.h"
 
-registerMooseObject("TensorMechanicsApp", ComputePolycrystalMultipleCPStress);
+registerMooseObject("TensorMechanicsApp", ComputePolyMultCPStressCopy);
 
 InputParameters
-ComputePolycrystalMultipleCPStress::validParams()
+ComputePolyMultCPStressCopy::validParams()
 {
   InputParameters params = ComputeFiniteStrainElasticStress::validParams();
 
@@ -61,7 +61,7 @@ ComputePolycrystalMultipleCPStress::validParams()
   return params;
 }
 
-ComputePolycrystalMultipleCPStress::ComputePolycrystalMultipleCPStress(
+ComputePolyMultCPStressCopy::ComputePolyMultCPStressCopy(
     const InputParameters & parameters)
   : ComputeFiniteStrainElasticStress(parameters),
     _num_models(getParam<std::vector<MaterialName>>("crystal_plasticity_models").size()),
@@ -105,7 +105,7 @@ ComputePolycrystalMultipleCPStress::ComputePolycrystalMultipleCPStress(
 }
 
 void
-ComputePolycrystalMultipleCPStress::initQpStatefulProperties()
+ComputePolyMultCPStressCopy::initQpStatefulProperties()
 {
   _plastic_deformation_gradient[_qp].zero();
   _plastic_deformation_gradient[_qp].addIa(1.0);
@@ -143,7 +143,7 @@ ComputePolycrystalMultipleCPStress::initQpStatefulProperties()
 }
 
 void
-ComputePolycrystalMultipleCPStress::initialSetup()
+ComputePolyMultCPStressCopy::initialSetup()
 {
   // get crystal plasticity models
   std::vector<MaterialName> model_names =
@@ -161,7 +161,7 @@ ComputePolycrystalMultipleCPStress::initialSetup()
     }
     else
       mooseError("Model " + model_names[i] +
-                 " is not compatible with ComputePolycrystalMultipleCPStress");
+                 " is not compatible with ComputePolyMultCPStressCopy");
   }
 
   // get crystal plasticity eigenstrains
@@ -178,12 +178,12 @@ ComputePolycrystalMultipleCPStress::initialSetup()
       _eigenstrains.push_back(eigenstrain);
     else
       mooseError("Eigenstrain" + eigenstrain_names[i] +
-                 " is not compatible with ComputePolycrystalMultipleCPStress");
+                 " is not compatible with ComputePolyMultCPStressCopy");
   }
 }
 
 void
-ComputePolycrystalMultipleCPStress::computeQpStress()
+ComputePolyMultCPStressCopy::computeQpStress()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
     _models[i]->setQp(_qp);
@@ -195,7 +195,7 @@ ComputePolycrystalMultipleCPStress::computeQpStress()
 }
 
 void
-ComputePolycrystalMultipleCPStress::updateStress(RankTwoTensor & cauchy_stress,
+ComputePolyMultCPStressCopy::updateStress(RankTwoTensor & cauchy_stress,
                                                      RankFourTensor & jacobian_mult)
 {
   // Does not support face/boundary material property calculation
@@ -254,14 +254,14 @@ ComputePolycrystalMultipleCPStress::updateStress(RankTwoTensor & cauchy_stress,
     }
 
     if (substep_iter > _max_substep_iter && _convergence_failed)
-      mooseException("ComputePolycrystalMultipleCPStress: Constitutive failure");
+      mooseException("ComputePolyMultCPStressCopy: Constitutive failure");
   } while (_convergence_failed);
 
   postSolveQp(cauchy_stress, jacobian_mult);
 }
 
 void
-ComputePolycrystalMultipleCPStress::preSolveQp()
+ComputePolyMultCPStressCopy::preSolveQp()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
     _models[i]->setInitialConstitutiveVariableValues();
@@ -271,7 +271,7 @@ ComputePolycrystalMultipleCPStress::preSolveQp()
 }
 
 void
-ComputePolycrystalMultipleCPStress::solveQp()
+ComputePolyMultCPStressCopy::solveQp()
 {
   for (unsigned int i = 0; i < _num_models; ++i)
   {
@@ -293,7 +293,7 @@ ComputePolycrystalMultipleCPStress::solveQp()
 }
 
 void
-ComputePolycrystalMultipleCPStress::postSolveQp(RankTwoTensor & cauchy_stress,
+ComputePolyMultCPStressCopy::postSolveQp(RankTwoTensor & cauchy_stress,
                                                     RankFourTensor & jacobian_mult)
 {
   cauchy_stress = _elastic_deformation_gradient * _pk2[_qp] *
@@ -313,7 +313,7 @@ ComputePolycrystalMultipleCPStress::postSolveQp(RankTwoTensor & cauchy_stress,
 }
 
 void
-ComputePolycrystalMultipleCPStress::solveStateVariables()
+ComputePolyMultCPStressCopy::solveStateVariables()
 {
   unsigned int iteration;
   bool iter_flag = true;
@@ -365,7 +365,7 @@ ComputePolycrystalMultipleCPStress::solveStateVariables()
     if (iter_flag)
     {
       if (_print_convergence_message)
-        mooseWarning("ComputePolycrystalMultipleCPStress: State variables (or the system "
+        mooseWarning("ComputePolyMultCPStressCopy: State variables (or the system "
                      "resistance) did not converge at element ",
                      _current_elem->id(),
                      " and qp ",
@@ -379,7 +379,7 @@ ComputePolycrystalMultipleCPStress::solveStateVariables()
   {
     if (_print_convergence_message)
       mooseWarning(
-          "ComputePolycrystalMultipleCPStress: Hardness Integration error. Reached the "
+          "ComputePolyMultCPStressCopy: Hardness Integration error. Reached the "
           "maximum number of iterations to solve for the state variables at element ",
           _current_elem->id(),
           " and qp ",
@@ -391,7 +391,7 @@ ComputePolycrystalMultipleCPStress::solveStateVariables()
 }
 
 void
-ComputePolycrystalMultipleCPStress::solveStress()
+ComputePolyMultCPStressCopy::solveStress()
 {
   unsigned int iteration = 0;
   RankTwoTensor dpk2;
@@ -402,7 +402,7 @@ ComputePolycrystalMultipleCPStress::solveStress()
   if (_convergence_failed)
   {
     if (_print_convergence_message)
-      mooseWarning("ComputePolycrystalMultipleCPStress: the slip increment exceeds tolerance "
+      mooseWarning("ComputePolyMultCPStressCopy: the slip increment exceeds tolerance "
                    "at element ",
                    _current_elem->id(),
                    " and Gauss point ",
@@ -427,7 +427,7 @@ ComputePolycrystalMultipleCPStress::solveStress()
     if (_convergence_failed)
     {
       if (_print_convergence_message)
-        mooseWarning("ComputePolycrystalMultipleCPStress: the slip increment exceeds tolerance "
+        mooseWarning("ComputePolyMultCPStressCopy: the slip increment exceeds tolerance "
                      "at element ",
                      _current_elem->id(),
                      " and Gauss point ",
@@ -442,7 +442,7 @@ ComputePolycrystalMultipleCPStress::solveStress()
     if (_use_line_search && rnorm > rnorm_prev && !lineSearchUpdate(rnorm_prev, dpk2))
     {
       if (_print_convergence_message)
-        mooseWarning("ComputePolycrystalMultipleCPStress: Failed with line search");
+        mooseWarning("ComputePolyMultCPStressCopy: Failed with line search");
 
       _convergence_failed = true;
       return;
@@ -457,7 +457,7 @@ ComputePolycrystalMultipleCPStress::solveStress()
   if (iteration >= _maxiter)
   {
     if (_print_convergence_message)
-      mooseWarning("ComputePolycrystalMultipleCPStress: Stress Integration error rmax = ",
+      mooseWarning("ComputePolyMultCPStressCopy: Stress Integration error rmax = ",
                    rnorm,
                    " and the tolerance is ",
                    _rtol * rnorm0,
@@ -474,7 +474,7 @@ ComputePolycrystalMultipleCPStress::solveStress()
 
 // Calculates stress residual equation and jacobian
 void
-ComputePolycrystalMultipleCPStress::calculateResidualAndJacobian()
+ComputePolyMultCPStressCopy::calculateResidualAndJacobian()
 {
   calculateResidual();
   if (_convergence_failed)
@@ -483,7 +483,7 @@ ComputePolycrystalMultipleCPStress::calculateResidualAndJacobian()
 }
 
 void
-ComputePolycrystalMultipleCPStress::calculateResidual()
+ComputePolyMultCPStressCopy::calculateResidual()
 {
   RankTwoTensor ce, elastic_strain, ce_pk2, equivalent_slip_increment_per_model,
       equivalent_slip_increment, pk2_new;
@@ -527,7 +527,7 @@ ComputePolycrystalMultipleCPStress::calculateResidual()
 }
 
 void
-ComputePolycrystalMultipleCPStress::calculateJacobian()
+ComputePolyMultCPStressCopy::calculateJacobian()
 {
   // may not need to cache the dfpinvdpk2 here. need to double check
   RankFourTensor dfedfpinv, deedfe, dfpinvdpk2, dfpinvdpk2_per_model;
@@ -562,7 +562,7 @@ ComputePolycrystalMultipleCPStress::calculateJacobian()
 }
 
 void
-ComputePolycrystalMultipleCPStress::calcTangentModuli(RankFourTensor & jacobian_mult)
+ComputePolyMultCPStressCopy::calcTangentModuli(RankFourTensor & jacobian_mult)
 {
   switch (_tan_mod_type)
   {
@@ -575,7 +575,7 @@ ComputePolycrystalMultipleCPStress::calcTangentModuli(RankFourTensor & jacobian_
 }
 
 void
-ComputePolycrystalMultipleCPStress::elastoPlasticTangentModuli(RankFourTensor & jacobian_mult)
+ComputePolyMultCPStressCopy::elastoPlasticTangentModuli(RankFourTensor & jacobian_mult)
 {
   RankFourTensor tan_mod;
   RankTwoTensor pk2fet, fepk2, feiginvfpinv;
@@ -621,14 +621,14 @@ ComputePolycrystalMultipleCPStress::elastoPlasticTangentModuli(RankFourTensor & 
 }
 
 void
-ComputePolycrystalMultipleCPStress::elasticTangentModuli(RankFourTensor & jacobian_mult)
+ComputePolyMultCPStressCopy::elasticTangentModuli(RankFourTensor & jacobian_mult)
 {
   // update jacobian_mult
   jacobian_mult = _elasticity_tensor[_qp];
 }
 
 bool
-ComputePolycrystalMultipleCPStress::lineSearchUpdate(const Real & rnorm_prev,
+ComputePolyMultCPStressCopy::lineSearchUpdate(const Real & rnorm_prev,
                                                          const RankTwoTensor & dpk2)
 {
   if (_line_search_method == LineSearchMethod::CutHalf)
@@ -703,7 +703,7 @@ ComputePolycrystalMultipleCPStress::lineSearchUpdate(const Real & rnorm_prev,
 }
 
 void
-ComputePolycrystalMultipleCPStress::calculateEigenstrainDeformationGrad()
+ComputePolyMultCPStressCopy::calculateEigenstrainDeformationGrad()
 {
   _inverse_eigenstrain_deformation_grad.zero();
   _inverse_eigenstrain_deformation_grad.addIa(1.0);

@@ -18,7 +18,7 @@
 #include "RankFourTensor.h"
 
 /**
- * ComputePolycrystalMultipleCPStress (used together with CrystalPlasticityStressUpdateBase)
+ * ComputePolyMultCPStressCopy (used together with CrystalPlasticityStressUpdateBase)
  * uses the multiplicative decomposition of the deformation gradient and solves the PK2 stress
  * residual equation at the intermediate configuration to evolve the material state. The internal
  * variables are updated using an iterative predictor-corrector algorithm. Backward Euler
@@ -27,12 +27,12 @@
  * This material that is not called by MOOSE because of the compute=false flag
  * set in the parameter list.
  */
-class ComputePolycrystalMultipleCPStress : public ComputeFiniteStrainElasticStress
+class ComputePolyMultCPStressCopy : public ComputeFiniteStrainElasticStress
 {
 public:
   static InputParameters validParams();
 
-  ComputePolycrystalMultipleCPStress(const InputParameters & parameters);
+  ComputePolyMultCPStressCopy(const InputParameters & parameters);
 
   virtual void initialSetup() override;
 
@@ -75,7 +75,7 @@ protected:
   /**
    * Save the final stress and internal variable values after the iterative solve.
    */
-  void postSolveQp(RankTwoTensor & stress_new, RankFourTensor & jacobian_mult);
+  virtual void postSolveQp(RankTwoTensor & stress_new, RankFourTensor & jacobian_mult);
 
   /**
    * Solves the internal variables stress as a function of the slip specified

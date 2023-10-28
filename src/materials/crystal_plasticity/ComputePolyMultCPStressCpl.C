@@ -5,7 +5,7 @@ registerMooseObject("TensorMechanicsApp", ComputePolyMultCPStressCpl);
 InputParameters
 ComputePolyMultCPStressCpl::validParams()
 {
-  InputParameters params = ComputeMultipleCrystalPlasticityStress::validParams();
+  InputParameters params = ComputePolyMultCPStressCopy::validParams();
   
   params.addClassDescription(
       "Crystal Plasticity and phase field coupled model");
@@ -19,7 +19,7 @@ ComputePolyMultCPStressCpl::validParams()
 }
 ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
     const InputParameters & parameters)
-  : ComputeMultipleCrystalPlasticityStress(parameters),
+  : ComputePolyMultCPStressCopy(parameters),
   _elastic_energy_name(_base_name + "elastic_energy"),
   _elastic_energy(declareProperty<Real>(_elastic_energy_name)),    
   _grain_tracker(getUserObject<GrainTrackerMatProp>("grain_tracker")),
@@ -43,20 +43,20 @@ ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
 void
 ComputePolyMultCPStressCpl::initialSetup()
 {
-  ComputeMultipleCrystalPlasticityStress::initialSetup();
+  ComputePolyMultCPStressCopy::initialSetup();
 }
 
 void
 ComputePolyMultCPStressCpl::initQpStatefulProperties()
 {
-  ComputeMultipleCrystalPlasticityStress::initQpStatefulProperties();
+  ComputePolyMultCPStressCopy::initQpStatefulProperties();
   _elastic_energy[_qp] = 0.0;
 }
 
 void
 ComputePolyMultCPStressCpl::postSolveQp(RankTwoTensor & cauchy_stress, RankFourTensor & jacobian_mult)
 {
-  ComputeMultipleCrystalPlasticityStress::postSolveQp(cauchy_stress, jacobian_mult);
+  ComputePolyMultCPStressCopy::postSolveQp(cauchy_stress, jacobian_mult);
 
   computeMechanicalEnergy(); 
 }
@@ -70,6 +70,7 @@ ComputePolyMultCPStressCpl::computeMechanicalEnergy()
   // Calculate elastic energy
   _elastic_energy[_qp] = 0.5 * _total_lagrangian_strain[_qp].doubleContraction(_pk2[_qp]);
 
+  std::cout << "_elastic_energy[_qp] " << _elastic_energy[_qp] << std::endl;
   Real sum_h = 0.0;
   unsigned int max_id = 0;
   Real max_vaule = (*_vals[max_id])[_qp];

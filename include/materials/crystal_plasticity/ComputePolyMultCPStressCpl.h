@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ComputeMultipleCrystalPlasticityStress.h"
+#include "ComputePolyMultCPStressCopy.h"
 #include "GrainTrackerMatProp.h"
 
-class ComputePolyMultCPStressCpl : public ComputeMultipleCrystalPlasticityStress
+class ComputePolyMultCPStressCpl : public ComputePolyMultCPStressCopy
 {
 public:
   static InputParameters validParams();
@@ -15,7 +15,7 @@ public:
 protected:
   virtual void initQpStatefulProperties() override;
 
-  virtual void postSolveQp(RankTwoTensor & cauchy_stress, RankFourTensor & jacobian_mult);  
+  virtual void postSolveQp(RankTwoTensor & cauchy_stress, RankFourTensor & jacobian_mult) override;  
 
   virtual void computeMechanicalEnergy();
 
