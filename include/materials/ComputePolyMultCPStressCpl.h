@@ -22,7 +22,7 @@ protected:
   std::string _elastic_energy_name;
   MaterialProperty<Real> & _elastic_energy;
   std::vector<MaterialProperty<Real> *> _D_elastic_energy;
- 
+  
   const GrainTrackerMatProp & _grain_tracker; /// Grain tracker object 
   const unsigned int _op_num; /// Number of order parameters
   const std::vector<const VariableValue *> _vals; /// Order parameters  

@@ -21,19 +21,16 @@ ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
     const InputParameters & parameters)
   : ComputeMultipleCrystalPlasticityStress(parameters),
   _elastic_energy_name(_base_name + "elastic_energy"),
-  _elastic_energy(declareProperty<Real>("_elastic_energy_name")),    
+  _elastic_energy(declareProperty<Real>(_elastic_energy_name)),    
   _grain_tracker(getUserObject<GrainTrackerMatProp>("grain_tracker")),
   _op_num(coupledComponents("v")),
   _vals(coupledValues("v")),
+  _D_elastic_energy(_op_num),
   _length_scale(getParam<Real>("length_scale")),
   _pressure_scale(getParam<Real>("pressure_scale")),
-  _JtoeV(6.24150974e18),
-  _D_elastic_energy(_op_num) // 初始化 _D_elastic_energy
+  _JtoeV(6.24150974e18)
 {
-  _elastic_energy[_qp] = 0.0;
-  std::cout << "_elastic_energy " << _elastic_energy[_qp] << std::endl;
-  std::cout << "the done of ComputePolyMultCPStressCpl" << std::endl;
-  // _D_elastic_energy.resize(_op_num, nullptr);
+  _D_elastic_energy.resize(_op_num);
   // Loop over variables (ops)
   for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
   {
@@ -46,7 +43,6 @@ ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
 void
 ComputePolyMultCPStressCpl::initialSetup()
 {
-  std::cout << "the done of ComputePolyMultCPStressCpl::initialSetup()" << std::endl;
   ComputeMultipleCrystalPlasticityStress::initialSetup();
 }
 
@@ -65,9 +61,6 @@ ComputePolyMultCPStressCpl::postSolveQp(RankTwoTensor & cauchy_stress, RankFourT
   computeMechanicalEnergy(); 
 }
 
-// 基于 _pk2[_qp] 获取 _pk2[_qp]_i
-// 基于 _total_lagrangian_strain[_qp] 获取 _total_lagrangian_strain[_qp]_i
-// 计算 elastic_energy_ij elastic_energy_ave
 void
 ComputePolyMultCPStressCpl::computeMechanicalEnergy()
 {
@@ -77,16 +70,13 @@ ComputePolyMultCPStressCpl::computeMechanicalEnergy()
   // Calculate elastic energy
   _elastic_energy[_qp] = 0.5 * _total_lagrangian_strain[_qp].doubleContraction(_pk2[_qp]);
 
-  // Calculate elastic energy derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
-  for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
-    (*_D_elastic_energy[op_index])[_qp] = 0.0;  
-
   Real sum_h = 0.0;
   unsigned int max_id = 0;
   Real max_vaule = (*_vals[max_id])[_qp];
-
-  for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
+  for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
   {
+    (*_D_elastic_energy[op_index])[_qp] = 0.0;  
+    
     // Interpolation factor for elasticity tensors
     Real h = (1.0 + std::sin(libMesh::pi * ((*_vals[op_index])[_qp] - 0.5))) / 2.0;
     sum_h += h;  
@@ -101,6 +91,7 @@ ComputePolyMultCPStressCpl::computeMechanicalEnergy()
   const Real tol = 1.0e-10;
   sum_h = std::max(sum_h, tol);
 
+  // Calculate elastic energy derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
     auto grain_id = op_to_grains[op_index];
