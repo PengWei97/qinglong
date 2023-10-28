@@ -30,4 +30,6 @@ protected:
   Real _length_scale;
   Real _pressure_scale;
   const Real _JtoeV; /// Conversion factor from J to eV
+
+  const VectorPostprocessorValue & _mat_prop_vect; 
 };

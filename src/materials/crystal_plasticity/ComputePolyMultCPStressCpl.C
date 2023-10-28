@@ -15,6 +15,8 @@ ComputePolyMultCPStressCpl::validParams()
   params.addParam<Real>("pressure_scale", 1.0e6, "Pressure scale of the problem, in pa");
   params.addRequiredCoupledVarWithAutoBuild(
       "v", "var_name_base", "op_num", "Array of coupled variables");
+  params.addRequiredParam<VectorPostprocessorName>("vpp",
+                                                   "The VectorPostprocessor vector to be coupled.");      
   return params;
 }
 ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
@@ -28,7 +30,8 @@ ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
   _D_elastic_energy(_op_num),
   _length_scale(getParam<Real>("length_scale")),
   _pressure_scale(getParam<Real>("pressure_scale")),
-  _JtoeV(6.24150974e18)
+  _JtoeV(6.24150974e18),
+  _mat_prop_vect(getVectorPostprocessorValue("vpp", "mat_prop_aves", true))
 {
   _D_elastic_energy.resize(_op_num);
   // Loop over variables (ops)
@@ -41,7 +44,7 @@ ComputePolyMultCPStressCpl::ComputePolyMultCPStressCpl(
 }
 
 void
-ComputePolyMultCPStressCpl::initialSetup()
+ComputePolyMultCPStressCpl::initialSetup() // 初始时刻执行
 {
   ComputePolyMultCPStressCopy::initialSetup();
 }
@@ -70,7 +73,6 @@ ComputePolyMultCPStressCpl::computeMechanicalEnergy()
   // Calculate elastic energy
   _elastic_energy[_qp] = 0.5 * _total_lagrangian_strain[_qp].doubleContraction(_pk2[_qp]);
 
-  std::cout << "_elastic_energy[_qp] " << _elastic_energy[_qp] << std::endl;
   Real sum_h = 0.0;
   unsigned int max_id = 0;
   Real max_vaule = (*_vals[max_id])[_qp];
@@ -93,7 +95,7 @@ ComputePolyMultCPStressCpl::computeMechanicalEnergy()
   sum_h = std::max(sum_h, tol);
 
   // Calculate elastic energy derivative: Cderiv = dhdopi/sum_h * (Cop - _Cijkl)
-  for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
+  for (MooseIndex(_op_num) op_index = 0; op_index < _op_num; ++op_index)
   {
     auto grain_id = op_to_grains[op_index];
     if (grain_id == FeatureFloodCount::invalid_id)
@@ -103,12 +105,12 @@ ComputePolyMultCPStressCpl::computeMechanicalEnergy()
     Real & C_deriv = (*_D_elastic_energy[op_index])[_qp];
     
     Real elastic_energy_grain_id = _elastic_energy[_qp];
-    // if (op_index != max_id)
-    //   elastic_energy_grain_id = _grain_tracker.getElasticEnergy(grain_id);
+    if ((op_index != max_id) && (_mat_prop_vect.size() > op_index))
+      elastic_energy_grain_id = _mat_prop_vect[grain_id];
 
     C_deriv = (elastic_energy_grain_id - _elastic_energy[_qp]) * dhdopi / sum_h;
 
     // Convert from XPa to eV/(xm)^3, where X is pressure scale and x is length scale;
     C_deriv *= _JtoeV * (_length_scale * _length_scale * _length_scale) * _pressure_scale;
-  }  
+  }
 }
