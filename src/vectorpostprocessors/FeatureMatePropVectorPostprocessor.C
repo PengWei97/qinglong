@@ -26,6 +26,11 @@ FeatureMatePropVectorPostprocessor::FeatureMatePropVectorPostprocessor(
 }
 
 void
+FeatureMatePropVectorPostprocessor::initialize()
+{
+}
+
+void
 FeatureMatePropVectorPostprocessor::execute()
 {
   FeatureVolumeVectorPostprocessorCopy::execute();
