@@ -24,7 +24,10 @@ ComputePolyElasticTensorCpl::ComputePolyElasticTensorCpl(
   _op_num(coupledComponents("v")),
   _vals(coupledValues("v")),
   _crysrot(declareProperty<RankTwoTensor>(_base_name + "crysrot"))
-{ 
+{
+  // the base class guarantees constant in time, but in this derived class the
+  // tensor will rotate over time once plastic deformation sets in
+  revokeGuarantee(_elasticity_tensor_name, Guarantee::CONSTANT_IN_TIME);  
 }
 
 void
