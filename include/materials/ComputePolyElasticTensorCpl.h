@@ -25,6 +25,9 @@ public:
 protected:
   virtual void computeQpElasticityTensor();
 
+  /// vector of elasticity tensor material properties
+  std::vector<MaterialProperty<RankFourTensor> *> _D_elastic_tensor;
+
   const GrainTrackerMatProp & _grain_tracker;
 
   const unsigned int _op_num; /// Number of order parameters
@@ -32,4 +35,8 @@ protected:
 
   /// Crystal Rotation Matrix used to rotate the slip system direction and normal
   MaterialProperty<RankTwoTensor> & _crysrot;
+
+  Real _length_scale;
+  Real _pressure_scale;  
+  const Real _JtoeV; /// Conversion factor from J to eV3
 };
