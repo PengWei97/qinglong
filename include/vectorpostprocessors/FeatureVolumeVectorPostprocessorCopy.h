@@ -63,7 +63,7 @@ protected:
   /// Indicates whether the calculation should be run on volumes or area of a boundary
   bool _is_boundary_restricted;
 
-// private:
+private:
   /// Add volume contributions to one or entries in the feature volume vector
   void accumulateVolumes(const Elem * elem,
                          const std::vector<unsigned int> & var_to_features,
@@ -83,6 +83,8 @@ protected:
 
   const std::vector<MooseVariableFEBase *> & _vars;
   std::vector<const VariableValue *> _coupled_sln;
+
+  const MaterialProperty<std::vector<Real>> & _slip_resistance;
 
   MooseMesh & _mesh;
   Assembly & _assembly;

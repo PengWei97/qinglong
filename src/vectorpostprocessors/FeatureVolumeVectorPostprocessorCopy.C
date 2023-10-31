@@ -64,7 +64,8 @@ FeatureVolumeVectorPostprocessorCopy::FeatureVolumeVectorPostprocessorCopy(
     _JxW(_assembly.JxW()),
     _coord(_assembly.coordTransformation()),
     _qrule_face(_assembly.qRuleFace()),
-    _JxW_face(_assembly.JxWFace())
+    _JxW_face(_assembly.JxWFace()),
+    _slip_resistance(getMaterialProperty<std::vector<Real>>("slip_resistance_copy"))
 {
   addMooseVariableDependency(_vars);
 
@@ -83,6 +84,10 @@ FeatureVolumeVectorPostprocessorCopy::FeatureVolumeVectorPostprocessorCopy(
 void
 FeatureVolumeVectorPostprocessorCopy::initialize()
 {
+  std::cout << "_slip_resistance[0].size() " << _slip_resistance[0].size() << std::endl;
+
+  for (const auto i : make_range(_slip_resistance[0].size()))
+    std::cout << "_slip_resistance[0][" << i << "]: " << _slip_resistance[0][i] << std::endl;
 }
 
 void
