@@ -35,6 +35,9 @@ FeatureMatPropVectorPostprocessor::validParams()
                         " the dominant order parameter determines the feature that accumulates the "
                         "entire element volume"); 
   params.addParam<bool>("output_centroids", false, "Set to true to output the feature centroids");
+  params.addParam<unsigned int>(
+      "number_slip_systems", 12,
+      "The total number of possible active slip systems for the crystalline material");
   params.addClassDescription("This object is designed to pull information from the data structures "
                              "of a \"FeatureFloodCount\" or derived object (e.g. individual "
                              "feature volumes)");
@@ -54,6 +57,8 @@ FeatureMatPropVectorPostprocessor::FeatureMatPropVectorPostprocessor(
     _feature_counter(getUserObject<FeatureFloodCount>("flood_counter")),
     _var_num(declareVector("var_num")),
     _feature_volumes(declareVector("feature_volumes")),
+    _number_slip_systems(getParam<unsigned int>("number_slip_systems")),
+    _slip_resistances(declareRestartableData<std::vector<std::vector<Real>>>("slip_resistances")),
     _vars(_feature_counter.getFECoupledVars()),
     _mesh(_subproblem.mesh()),
     _assembly(_subproblem.assembly(_tid)),
@@ -65,8 +70,7 @@ FeatureMatPropVectorPostprocessor::FeatureMatPropVectorPostprocessor(
     _JxW_face(_assembly.JxWFace()),
 
     _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
-    _slip_resistances_copy(getMaterialProperty<std::vector<Real>>(_base_name + "slip_resistances_copy")),   
-    _slip_resistance_sl1(declareVector("slip_resistance_sl1"))
+    _slip_resistance_copy(getMaterialProperty<std::vector<Real>>(_base_name + "slip_resistance_copy"))
 {
   addMooseVariableDependency(_vars);
 
@@ -116,8 +120,10 @@ FeatureMatPropVectorPostprocessor::execute()
   // Reset the volume vector
   _feature_volumes.assign(num_features, 0);
 
-  // Reset the slip resistance vector
-  _slip_resistance_sl1.assign(num_features, 0);
+// Reset the slip resistance vector
+  _slip_resistances.resize(num_features);
+  for (auto grain_index : make_range(num_features))
+    _slip_resistances[grain_index].assign(_number_slip_systems, 0.0);
 
   // Calculate coverage of a boundary if one has been supplied in the input file
   if (_is_boundary_restricted)
@@ -171,15 +177,19 @@ FeatureMatPropVectorPostprocessor::finalize()
   // Do the parallel sum
   _communicator.sum(_feature_volumes);
 
-  // Do the parallel sum
-  _communicator.sum(_slip_resistance_sl1);
-
   auto num_features = _feature_volumes.size();
-  for (std::size_t feature_num = 0; feature_num < num_features; ++feature_num)
-    if (_feature_volumes[feature_num] > 0.0)
-      _slip_resistance_sl1[feature_num] = _slip_resistance_sl1[feature_num]/_feature_volumes[feature_num];
+  // Do the parallel sum for _slip_resistances
+  for (auto grain_index : make_range(num_features))
+    _communicator.sum(_slip_resistances[grain_index]);
+
+  for (auto grain_index : make_range(num_features))
+  {
+    if (_feature_volumes[grain_index] > 0.0)
+      for (auto sr_index : make_range(_number_slip_systems))
+        _slip_resistances[grain_index][sr_index] /= _feature_volumes[grain_index];
     else
-      _slip_resistance_sl1[feature_num] = 0.0;
+      _slip_resistances[grain_index].assign(_number_slip_systems, 0.0);
+  }
 }
 
 Real
@@ -187,6 +197,14 @@ FeatureMatPropVectorPostprocessor::getFeatureVolume(unsigned int feature_id) con
 {
   mooseAssert(feature_id < _feature_volumes.size(), "feature_id is out of range");
   return _feature_volumes[feature_id];
+}
+
+std::vector<Real> 
+FeatureMatPropVectorPostprocessor::getSlipResistance(unsigned int feature_id) const
+{
+  mooseAssert(feature_id < _slip_resistances.size(), "feature_id is out of range");
+
+  return _slip_resistances[feature_id];
 }
 
 void
@@ -220,10 +238,10 @@ FeatureMatPropVectorPostprocessor::accumulateVolumes(
       // Solution based volume calculation (integral value)
       else
         _feature_volumes[feature_id] += integral_value;
-      
-      // TODO - 需要修改
-      auto slip_resistance_integral_value = computeSlipResistanceIntegral(var_index);
-      _slip_resistance_sl1[feature_id] += slip_resistance_integral_value;
+
+      std::vector<Real> slip_resistance_integral_value = computeSlipResistanceIntegral(var_index);
+      for (auto sr_index : make_range(_number_slip_systems))
+        _slip_resistances[feature_id][sr_index] += slip_resistance_integral_value[sr_index];
     }
   }
 
@@ -243,14 +261,14 @@ FeatureMatPropVectorPostprocessor::computeIntegral(std::size_t var_index) const
   return sum;
 }
 
-// TODO - 需要被修改
-Real
+std::vector<Real>
 FeatureMatPropVectorPostprocessor::computeSlipResistanceIntegral(std::size_t var_index) const
 {
-  Real sum = 0;
+  std::vector<Real> sum(_number_slip_systems, 0.0);
 
-  for (unsigned int qp = 0; qp < _qrule->n_points(); ++qp)
-    sum += _JxW[qp] * _coord[qp] * (*_coupled_sln[var_index])[qp] * _slip_resistances_copy[qp][0];
+  for (auto sr_index : make_range(_number_slip_systems))
+    for (unsigned int qp = 0; qp < _qrule->n_points(); ++qp)
+      sum[sr_index] += _JxW[qp] * _coord[qp] * (*_coupled_sln[var_index])[qp] * _slip_resistance_copy[qp][sr_index];
 
   return sum;
 }

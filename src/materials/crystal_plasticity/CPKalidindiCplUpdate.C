@@ -64,9 +64,7 @@ CPKalidindiCplUpdate::CPKalidindiCplUpdate(const InputParameters & parameters)
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
                                     : nullptr),
 
-    _first_time(declareRestartableData<bool>("first_time", true)),
-    _slip_resistances_copy(declareProperty<std::vector<Real>>(_base_name + "slip_resistances_copy")),
-    _slip_resistance_sl1(getVectorPostprocessorValue("vpp_name", "slip_resistance_sl1")),
+    _slip_resistance_copy(declareProperty<std::vector<Real>>(_base_name + "slip_resistance_copy")),
     _grain_tracker(getUserObject<GrainTrackerMatProp>("grain_tracker")),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
@@ -86,7 +84,8 @@ CPKalidindiCplUpdate::initQpStatefulProperties()
     _slip_increment[_qp][i] = 0.0;
   }
 
-  _slip_resistances_copy[_qp] = _slip_resistance[_qp];
+  _slip_resistance_copy[_qp] = _slip_resistance[_qp];
+
 }
 
 void
@@ -124,22 +123,17 @@ CPKalidindiCplUpdate::convertStateVariablesFromPFtoPF()
   }
 
   auto max_grain_id = op_to_grains[max_id];
-  // TODO 
-  // Would also set old dislocation densities here if included in this model
 
-  if (!_slip_resistance_sl1.size())
+  // TODO want need set it to be _vpp_object_ptr
+  const FeatureMatPropVectorPostprocessor * vpp_object_ptr = dynamic_cast<FeatureMatPropVectorPostprocessor *>(const_cast<VectorPostprocessor *>(&_fe_problem.getVectorPostprocessorObjectByName("grain_volumes"))); 
+
+  if (!vpp_object_ptr)
     mooseError("Pointer cast failed! Object is not of expected type");
 
-  _slip_resistance[_qp][0] = _slip_resistance_sl1[max_grain_id];
-  _previous_substep_slip_resistance[0] = _slip_resistance_sl1[max_grain_id];
+  std::vector<Real> max_slip_resistance = vpp_object_ptr->getSlipResistance(max_grain_id);
 
-  auto _vpp_object_ptr = dynamic_cast<FeatureMatPropVectorPostprocessor *>(const_cast<VectorPostprocessor *>(&_fe_problem.getVectorPostprocessorObjectByName("grain_volumes")));
-
-  if (!_vpp_object_ptr)
-    mooseError("Pointer cast failed! Object is not of expected type");
-
-  unsigned int grain_id = 1;
-  auto obtain_value = _vpp_object_ptr->getFeatureVolume(grain_id);  // where the error occurred
+  _slip_resistance[_qp] = max_slip_resistance;
+  _previous_substep_slip_resistance = max_slip_resistance;
 }
 
 void

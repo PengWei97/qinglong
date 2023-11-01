@@ -46,11 +46,14 @@ public:
    */
   Real getFeatureVolume(unsigned int feature_id) const;
 
+  std::vector<Real> getSlipResistance(unsigned int feature_id) const;
+
 protected:
   const std::string _base_name;
   /// A Boolean indicating how the volume is calculated
   const bool _single_feature_per_elem;
   const bool _output_centroids;
+  const unsigned int _number_slip_systems;
 
   /// A reference to the feature flood count object
   const FeatureFloodCount & _feature_counter;
@@ -58,8 +61,7 @@ protected:
   VectorPostprocessorValue & _var_num;
   VectorPostprocessorValue & _feature_volumes;
   
-  // TODO - 需要修改成 std::vector<std::vector<Real>> _grain_id_to_slip_resistances; 其中 num_grain_id * num_slip_systems
-  VectorPostprocessorValue & _slip_resistance_sl1;
+  std::vector<std::vector<Real>> & _slip_resistances;
 
   /// Indicates whether the calculation should be run on volumes or area of a boundary
   bool _is_boundary_restricted;
@@ -78,8 +80,7 @@ protected:
   /// Calculate the integral value of the passed in variable (index)
   Real computeIntegral(std::size_t var_index) const;
 
-  /// TODO - 需要修改成 std::vector<Real> computeSlipResistancesIntegralIntegral(std::size_t var_index) const, 其中需要计算多个滑移系的值
-  Real computeSlipResistanceIntegral(std::size_t var_index) const;
+  std::vector<Real> computeSlipResistanceIntegral(std::size_t var_index) const;
 
   /// Calculate the integral on the face if boundary is supplied as input
   Real computeFaceIntegral(std::size_t var_index) const;
@@ -99,5 +100,5 @@ protected:
   std::array<VectorPostprocessorValue *, 3> _centroid;
 
   // Get from material class CPKalindindiCplUpdate
-  const MaterialProperty<std::vector<Real>> & _slip_resistances_copy;
+  const MaterialProperty<std::vector<Real>> & _slip_resistance_copy;
 };

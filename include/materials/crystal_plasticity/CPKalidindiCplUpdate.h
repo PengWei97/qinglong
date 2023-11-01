@@ -45,6 +45,12 @@ protected:
   virtual void setInitialConstitutiveVariableValues() override;
 
   /**
+   * The state parameter sequence obtained from PF is converted into the unique
+   * state parameter in CP, such as _slip_resistance.
+   */
+  void convertStateVariablesFromPFtoPF();
+  
+  /**
    * Sets the current slip system resistance value to the previous substep value.
    * In cases where only one substep is taken (or when the first) substep is taken,
    * this method just sets the current value to the old slip system resistance
@@ -142,13 +148,8 @@ protected:
    */
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
 
-  MaterialProperty<std::vector<Real>> & _slip_resistances_copy;
+  MaterialProperty<std::vector<Real>> & _slip_resistance_copy;
 
-  // 从PF总获取的状态参数序列转换成CP中唯一确定的状态参数，如_slip_resistance
-  void convertStateVariablesFromPFtoPF();
-
-  bool & _first_time;
-  const VectorPostprocessorValue & _slip_resistance_sl1;
   const GrainTrackerMatProp & _grain_tracker;
   const unsigned int _op_num; /// Number of order parameters
   const std::vector<const VariableValue *> _vals; /// Order parameters
