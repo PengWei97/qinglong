@@ -11,6 +11,7 @@
 
 #include "CrystalPlasticityStressUpdateBase.h"
 #include "GrainTrackerMatProp.h"
+#include "FeatureMatPropVectorPostprocessor.h"
 
 class CPKalidindiCplUpdate;
 
@@ -146,9 +147,12 @@ protected:
   // 从PF总获取的状态参数序列转换成CP中唯一确定的状态参数，如_slip_resistance
   void convertStateVariablesFromPFtoPF();
 
-  const bool & _first_time;
+  bool & _first_time;
   const VectorPostprocessorValue & _slip_resistance_sl1;
   const GrainTrackerMatProp & _grain_tracker;
   const unsigned int _op_num; /// Number of order parameters
   const std::vector<const VariableValue *> _vals; /// Order parameters
+
+  FEProblemBase & _fe_problem;
+  int & _t_step;
 };

@@ -9,6 +9,7 @@
 
 #include "CPKalidindiCplUpdate.h"
 #include "libmesh/int_range.h"
+#include "FEProblem.h"
 
 registerMooseObject("TensorMechanicsApp", CPKalidindiCplUpdate);
 
@@ -68,7 +69,9 @@ CPKalidindiCplUpdate::CPKalidindiCplUpdate(const InputParameters & parameters)
     _slip_resistance_sl1(getVectorPostprocessorValue("vpp_name", "slip_resistance_sl1")),
     _grain_tracker(getUserObject<GrainTrackerMatProp>("grain_tracker")),
     _op_num(coupledComponents("v")),
-    _vals(coupledValues("v"))                              
+    _vals(coupledValues("v")),
+    _fe_problem(*parameters.get<FEProblem *>("_fe_problem")),
+    _t_step(_fe_problem.timeStep())
 {
 }
 
@@ -93,8 +96,10 @@ CPKalidindiCplUpdate::setInitialConstitutiveVariableValues()
   _slip_resistance[_qp] = _slip_resistance_old[_qp];
   _previous_substep_slip_resistance = _slip_resistance_old[_qp];
 
-  if (!_first_time)
+  if (_t_step > 0)
     convertStateVariablesFromPFtoPF();
+
+  // _first_time = false;
 }
 
 void
@@ -127,6 +132,14 @@ CPKalidindiCplUpdate::convertStateVariablesFromPFtoPF()
 
   _slip_resistance[_qp][0] = _slip_resistance_sl1[max_grain_id];
   _previous_substep_slip_resistance[0] = _slip_resistance_sl1[max_grain_id];
+
+  auto _vpp_object_ptr = dynamic_cast<FeatureMatPropVectorPostprocessor *>(const_cast<VectorPostprocessor *>(&_fe_problem.getVectorPostprocessorObjectByName("grain_volumes")));
+
+  if (!_vpp_object_ptr)
+    mooseError("Pointer cast failed! Object is not of expected type");
+
+  unsigned int grain_id = 1;
+  auto obtain_value = _vpp_object_ptr->getFeatureVolume(grain_id);  // where the error occurred
 }
 
 void

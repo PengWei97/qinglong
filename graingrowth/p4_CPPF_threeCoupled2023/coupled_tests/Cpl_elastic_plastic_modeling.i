@@ -377,8 +377,8 @@ my_filename2 = "t0_gg_elastic_fatigue"
   start_time = 0.0
   # dt = 0.001
   dtmax = 0.2
-  end_time = 100
-  # num_steps = 3
+  # end_time = 100
+  num_steps = 3
   
   [./TimeStepper]
     type = IterationAdaptiveDT
