@@ -57,10 +57,7 @@ protected:
 
   VectorPostprocessorValue & _var_num;
   VectorPostprocessorValue & _feature_volumes;
-  VectorPostprocessorValue & _intersects_bounds;
-  VectorPostprocessorValue & _intersects_specified_bounds;
-  VectorPostprocessorValue & _percolated;
-
+  
   // TODO - 需要修改成 std::vector<std::vector<Real>> _grain_id_to_slip_resistances; 其中 num_grain_id * num_slip_systems
   VectorPostprocessorValue & _slip_resistance_sl1;
 
