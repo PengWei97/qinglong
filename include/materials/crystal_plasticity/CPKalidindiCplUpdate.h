@@ -139,4 +139,6 @@ protected:
    * value by a single timestep.
    */
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
+
+  MaterialProperty<std::vector<Real>> & _slip_resistances_copy;
 };

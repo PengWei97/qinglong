@@ -47,6 +47,7 @@ public:
   Real getFeatureVolume(unsigned int feature_id) const;
 
 protected:
+  const std::string _base_name;
   /// A Boolean indicating how the volume is calculated
   const bool _single_feature_per_elem;
   const bool _output_centroids;
@@ -60,10 +61,12 @@ protected:
   VectorPostprocessorValue & _intersects_specified_bounds;
   VectorPostprocessorValue & _percolated;
 
+  // TODO - 需要修改成 std::vector<std::vector<Real>> _grain_id_to_slip_resistances; 其中 num_grain_id * num_slip_systems
+  VectorPostprocessorValue & _slip_resistance_sl1;
+
   /// Indicates whether the calculation should be run on volumes or area of a boundary
   bool _is_boundary_restricted;
 
-private:
   /// Add volume contributions to one or entries in the feature volume vector
   void accumulateVolumes(const Elem * elem,
                          const std::vector<unsigned int> & var_to_features,
@@ -77,6 +80,9 @@ private:
 
   /// Calculate the integral value of the passed in variable (index)
   Real computeIntegral(std::size_t var_index) const;
+
+  /// TODO - 需要修改成 std::vector<Real> computeSlipResistancesIntegralIntegral(std::size_t var_index) const, 其中需要计算多个滑移系的值
+  Real computeSlipResistanceIntegral(std::size_t var_index) const;
 
   /// Calculate the integral on the face if boundary is supplied as input
   Real computeFaceIntegral(std::size_t var_index) const;
@@ -94,4 +100,7 @@ private:
   const MooseArray<Real> & _JxW_face;
 
   std::array<VectorPostprocessorValue *, 3> _centroid;
+
+  // Get from material class CPKalindindiCplUpdate
+  const MaterialProperty<std::vector<Real>> & _slip_resistances_copy;
 };

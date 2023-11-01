@@ -26,13 +26,14 @@ FeatureMatPropVectorPostprocessor::validParams()
   InputParameters params = GeneralVectorPostprocessor::validParams();
   params += BoundaryRestrictable::validParams();
 
+  params.addParam<std::string>("base_name", "Name to append to reporters.");                        
   params.addRequiredParam<UserObjectName>("flood_counter",
                                           "The FeatureFloodCount UserObject to get values from.");
   params.addParam<bool>("single_feature_per_element",
                         false,
                         "Set this Boolean if you wish to use an element based volume where"
                         " the dominant order parameter determines the feature that accumulates the "
-                        "entire element volume");
+                        "entire element volume"); 
   params.addParam<bool>("output_centroids", false, "Set to true to output the feature centroids");
   params.addClassDescription("This object is designed to pull information from the data structures "
                              "of a \"FeatureFloodCount\" or derived object (e.g. individual "
@@ -64,7 +65,11 @@ FeatureMatPropVectorPostprocessor::FeatureMatPropVectorPostprocessor(
     _JxW(_assembly.JxW()),
     _coord(_assembly.coordTransformation()),
     _qrule_face(_assembly.qRuleFace()),
-    _JxW_face(_assembly.JxWFace())
+    _JxW_face(_assembly.JxWFace()),
+
+    _base_name(isParamValid("base_name") ? getParam<std::string>("base_name") + "_" : ""),
+    _slip_resistances_copy(getMaterialProperty<std::vector<Real>>(_base_name + "slip_resistances_copy")),   
+    _slip_resistance_sl1(declareVector("slip_resistance_sl1"))
 {
   addMooseVariableDependency(_vars);
 
@@ -126,6 +131,9 @@ FeatureMatPropVectorPostprocessor::execute()
   // Reset the volume vector
   _feature_volumes.assign(num_features, 0);
 
+  // Reset the slip resistance vector
+  _slip_resistance_sl1.assign(num_features, 0);
+
   // Calculate coverage of a boundary if one has been supplied in the input file
   if (_is_boundary_restricted)
   {
@@ -177,6 +185,16 @@ FeatureMatPropVectorPostprocessor::finalize()
 {
   // Do the parallel sum
   _communicator.sum(_feature_volumes);
+
+  // Do the parallel sum
+  _communicator.sum(_slip_resistance_sl1);
+
+  auto num_features = _feature_volumes.size();
+  for (std::size_t feature_num = 0; feature_num < num_features; ++feature_num)
+    if (_feature_volumes[feature_num] > 0.0)
+      _slip_resistance_sl1[feature_num] = _slip_resistance_sl1[feature_num]/_feature_volumes[feature_num];
+    else
+      _slip_resistance_sl1[feature_num] = 0.0;
 }
 
 Real
@@ -217,6 +235,10 @@ FeatureMatPropVectorPostprocessor::accumulateVolumes(
       // Solution based volume calculation (integral value)
       else
         _feature_volumes[feature_id] += integral_value;
+      
+      // TODO - 需要修改
+      auto slip_resistance_integral_value = computeSlipResistanceIntegral(var_index);
+      _slip_resistance_sl1[feature_id] += slip_resistance_integral_value;
     }
   }
 
@@ -232,6 +254,18 @@ FeatureMatPropVectorPostprocessor::computeIntegral(std::size_t var_index) const
 
   for (unsigned int qp = 0; qp < _qrule->n_points(); ++qp)
     sum += _JxW[qp] * _coord[qp] * (*_coupled_sln[var_index])[qp];
+
+  return sum;
+}
+
+// TODO - 需要被修改
+Real
+FeatureMatPropVectorPostprocessor::computeSlipResistanceIntegral(std::size_t var_index) const
+{
+  Real sum = 0;
+
+  for (unsigned int qp = 0; qp < _qrule->n_points(); ++qp)
+    sum += _JxW[qp] * _coord[qp] * (*_coupled_sln[var_index])[qp] * _slip_resistances_copy[qp][0];
 
   return sum;
 }

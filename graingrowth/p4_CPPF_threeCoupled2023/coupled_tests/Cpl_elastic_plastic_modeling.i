@@ -19,7 +19,7 @@ my_filename2 = "t0_gg_elastic_fatigue"
     type = ComputePolyElasticTensorCpl # ComputePolycrystalElasticiyTensor
   [../]
   [./stress]
-    type = ComputePolyMultCPStressCpl # ComputeMultipleCrystalPlasticityStress
+    type = ComputeMultCPStressCpl # ComputeMultipleCrystalPlasticityStress ComputeMultCPStressCpl
     crystal_plasticity_models = 'trial_xtalpl'
     tan_mod_type = exact
     use_line_search = true
@@ -46,8 +46,6 @@ my_filename2 = "t0_gg_elastic_fatigue"
 
     output_properties = 'slip_resistance'
     outputs = my_exodus
-
-    vectorpostprocessor = grain_volumes
   [../]
   [./strain]
     type = ComputeFiniteStrain

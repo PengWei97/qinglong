@@ -56,7 +56,9 @@ CPKalidindiCplUpdate::CPKalidindiCplUpdate(
     _include_twinning_in_Lp(parameters.isParamValid("total_twin_volume_fraction")),
     _twin_volume_fraction_total(_include_twinning_in_Lp
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
-                                    : nullptr)
+                                    : nullptr),
+
+    _slip_resistances_copy(declareProperty<std::vector<Real>>(_base_name + "slip_resistances_copy"))                                
 {
 }
 
@@ -70,6 +72,8 @@ CPKalidindiCplUpdate::initQpStatefulProperties()
     _slip_resistance[_qp][i] = _gss_initial;
     _slip_increment[_qp][i] = 0.0;
   }
+
+  _slip_resistances_copy[_qp] = _slip_resistance[_qp];
 }
 
 void
