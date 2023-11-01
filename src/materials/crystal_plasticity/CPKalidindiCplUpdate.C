@@ -29,11 +29,16 @@ CPKalidindiCplUpdate::validParams()
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
 
+  params.addRequiredParam<VectorPostprocessorName>(
+      "vpp_name", "The name of the VectorPostprocessor that you want to use");
+  params.addRequiredParam<UserObjectName>(
+      "grain_tracker", "Name of GrainTracker user object that provides RankFourTensors");
+  params.addRequiredCoupledVarWithAutoBuild(
+      "v", "var_name_base", "op_num", "Array of coupled variables");  
   return params;
 }
 
-CPKalidindiCplUpdate::CPKalidindiCplUpdate(
-    const InputParameters & parameters)
+CPKalidindiCplUpdate::CPKalidindiCplUpdate(const InputParameters & parameters)
   : CrystalPlasticityStressUpdateBase(parameters),
     // Constitutive values
     _r(getParam<Real>("r")),
@@ -58,7 +63,12 @@ CPKalidindiCplUpdate::CPKalidindiCplUpdate(
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
                                     : nullptr),
 
-    _slip_resistances_copy(declareProperty<std::vector<Real>>(_base_name + "slip_resistances_copy"))                                
+    _first_time(declareRestartableData<bool>("first_time", true)),
+    _slip_resistances_copy(declareProperty<std::vector<Real>>(_base_name + "slip_resistances_copy")),
+    _slip_resistance_sl1(getVectorPostprocessorValue("vpp_name", "slip_resistance_sl1")),
+    _grain_tracker(getUserObject<GrainTrackerMatProp>("grain_tracker")),
+    _op_num(coupledComponents("v")),
+    _vals(coupledValues("v"))                              
 {
 }
 
@@ -82,6 +92,41 @@ CPKalidindiCplUpdate::setInitialConstitutiveVariableValues()
   // Would also set old dislocation densities here if included in this model
   _slip_resistance[_qp] = _slip_resistance_old[_qp];
   _previous_substep_slip_resistance = _slip_resistance_old[_qp];
+
+  if (!_first_time)
+    convertStateVariablesFromPFtoPF();
+}
+
+void
+CPKalidindiCplUpdate::convertStateVariablesFromPFtoPF()
+{
+  // Get list of active order parameters from grain tracker
+  const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
+
+  unsigned int max_id = 0;
+  Real max_var = (*_vals[max_id])[_qp];
+  for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
+  {
+    auto grain_id = op_to_grains[op_index];
+    if (grain_id == FeatureFloodCount::invalid_id)
+      continue;  
+    
+    if ((*_vals[op_index])[_qp] > max_var)
+    {
+      max_id = op_index;
+      max_var = (*_vals[max_id])[_qp];
+    }    
+  }
+
+  auto max_grain_id = op_to_grains[max_id];
+  // TODO 
+  // Would also set old dislocation densities here if included in this model
+
+  if (!_slip_resistance_sl1.size())
+    mooseError("Pointer cast failed! Object is not of expected type");
+
+  _slip_resistance[_qp][0] = _slip_resistance_sl1[max_grain_id];
+  _previous_substep_slip_resistance[0] = _slip_resistance_sl1[max_grain_id];
 }
 
 void

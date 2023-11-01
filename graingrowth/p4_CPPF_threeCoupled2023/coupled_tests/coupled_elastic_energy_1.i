@@ -1,5 +1,119 @@
-my_filename = "t1_gg_elastic_cp"
-my_filename2 = "t1_gg_elastic_cp"
+
+# t2_gg_elastic: 
+
+my_filename = "t4_gg_elastic_fatigue"
+my_filename2 = "t4_gg_elastic_fatigue"
+
+[Materials]
+  [./Copper]
+    type = GBEvolution
+    block = 0
+    T = 500 # K
+    wGB = 5 # nm
+    GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
+    Q = 0.23 # Migration energy in eV
+    # GBMobility = 0.0
+    GBenergy = 0.708 # GB energy in J/m^2
+
+    # length_scale = 1.0e-9
+    # time_scale = 1.0
+  [../]
+  [./ElasticityTensor]
+    type = ComputePolyElasticTensorCpl # 
+  [../]
+  [./stress]
+    type = ComputeMultipleCrystalPlasticityStressCopy # ComputePolyMultCPStressCplV2 # ComputeMultipleCrystalPlasticityStress # ComputePolyMultCPStressCpl
+    crystal_plasticity_models = 'trial_xtalpl'
+    tan_mod_type = exact
+    use_line_search = true
+
+    # rtol = 1e-6 # Constitutive stress residual relative tolerance
+    # maxiter_state_variable = 50 # Maximum number of iterations for stress update
+    # maximum_substep_iteration = 25 # Maximum number of substep iteration
+  [../]
+  [./trial_xtalpl]
+    type = CrystalPlasticityKalidindiUpdateCopy # CrystalPlasticityKalidindiUpdate
+    crystal_lattice_type = FCC
+    number_slip_systems = 12 
+    slip_sys_file_name = input_slip_sys.txt
+
+    ao = 0.001 # 
+    gss_initial = 30.8
+    t_sat = 148
+    # h = 180
+    slip_increment_tolerance = 0.1 # Maximum allowable slip in an increment
+    stol = 0.1 # Constitutive internal state variable relative change tolerance
+    resistance_tol = 0.1
+
+    # grain_tracker = grain_tracker
+
+    output_properties = 'slip_resistance'
+    outputs = my_exodus
+
+    vectorpostprocessor = grain_volumes
+  [../]
+  [./strain]
+    type = ComputeFiniteStrain
+    block = 0
+    displacements = 'disp_x disp_y'
+  [../]
+[]
+
+[Kernels]
+  [./PolycrystalKernel]
+    # ACGrGrPoly ACInterface TimeDerivative
+  [../]
+  [./PolycrystalElasticDrivingForce]
+      # ACGrGrElasticDrivingForce ~ 修改了
+  [../]
+  [./TensorMechanics]
+    use_displaced_mesh = true
+    displacements = 'disp_x disp_y'
+  [../]
+[]
+
+[UserObjects]
+  [./euler_angle_file]
+    type = EulerAngleFileReader
+    file_name = grn_36_rand_2D.tex
+  [../]
+  [./voronoi]
+    type = PolycrystalVoronoi
+    coloring_algorithm = jp
+
+    int_width = 5
+    rand_seed = 10
+  [../]
+  [./grain_tracker]
+    type = GrainTrackerMatProp # GrainTrackerElasticity
+    threshold = 0.2
+    compute_var_to_feature_map = true
+    execute_on = 'initial timestep_begin'
+
+    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
+    fill_method = symmetric9
+
+    flood_entity_type = ELEMENTAL
+    euler_angle_provider = euler_angle_file
+  [../]
+  [./term]
+    type = Terminator
+    # expression = 'gr1_area < 500'
+    expression = 'run_time > 14400'
+  [../]    
+[]
+
+[VectorPostprocessors]
+  [./grain_volumes]
+    type = FeatureVolumeVectorPostprocessor # FeatureVolumeVectorPostprocessorCopy # FeatureVolumeVectorPostprocessor
+    flood_counter = grain_tracker
+    # mat_prop = elastic_energy
+    execute_on = 'INITIAL TIMESTEP_BEGIN' 
+    # 'INITIAL TIMESTEP_BEGIN LINEAR NONLINEAR'
+    
+    # TIMESTEP_BEGIN ~ Must exist, otherwise an error will be reported
+  [../]
+[]
 
 [Mesh]
   type = GeneratedMesh
@@ -20,6 +134,8 @@ my_filename2 = "t1_gg_elastic_cp"
 
   length_scale = 1.0e-9
   pressure_scale = 1.0e6
+
+  grain_tracker = grain_tracker
 []
 
 [Variables]
@@ -44,6 +160,18 @@ my_filename2 = "t1_gg_elastic_cp"
 []
 
 [AuxVariables]
+  [./pk2]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./e_yy]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
+  [./gss]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
   [./bnds]
     order = FIRST
     family = LAGRANGE
@@ -78,29 +206,30 @@ my_filename2 = "t1_gg_elastic_cp"
   [../]
 []
 
-[Kernels]
-  [./PolycrystalKernel]
-    # ACGrGrPoly ACInterface TimeDerivative
-  [../]
-  # [./PolyElasticEnergyDrivingCpl]
-  #   # ACGGElasticEnergyCpl
-  # [../]
-  [./TensorMechanics]
-    use_displaced_mesh = true
-    displacements = 'disp_x disp_y'
-  [../]
-[]
-
-# [Modules/TensorMechanics/Master/all]
-#   strain = FINITE # SMALL # FINITE
-#   # displacements = 'disp_x disp_y'
-#   # use_displaced_mesh = true
-
-#   # add_variables = true
-#   # generate_output = strain_yy
-# []
-
 [AuxKernels]
+  [./pk2]
+    type = RankTwoAux
+    variable = pk2
+    rank_two_tensor = second_piola_kirchhoff_stress
+    index_j = 1
+    index_i = 1
+    execute_on = timestep_end
+  [../]
+  [./e_yy]
+    type = RankTwoAux
+    variable = e_yy
+    rank_two_tensor = total_lagrangian_strain
+    index_j = 1
+    index_i = 1
+    execute_on = timestep_end
+  [../]
+  [./gss]
+    type = MaterialStdVectorAux
+    variable = gss
+    property = slip_resistance
+    index = 0
+    execute_on = timestep_end
+  [../]
   [./BndsCalc]
     type = BndsCalcAux
     variable = bnds
@@ -109,7 +238,7 @@ my_filename2 = "t1_gg_elastic_cp"
   [./elastic_strain22]
     type = RankTwoAux
     variable = elastic_strain22
-    rank_two_tensor = elastic_strain
+    rank_two_tensor = total_lagrangian_strain
     index_i = 1
     index_j = 1
     execute_on = timestep_end
@@ -166,7 +295,7 @@ my_filename2 = "t1_gg_elastic_cp"
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    expression = 'if (t<90,0.1*t,9.0)'
+    expression = '0.05*sin(2*pi*t)' # 'if (t<90,0.1*t,9.0)'
   [../]
 []
 
@@ -198,108 +327,6 @@ my_filename2 = "t1_gg_elastic_cp"
   [../]
 []
 
-[UserObjects]
-  [./euler_angle_file]
-    type = EulerAngleFileReader
-    file_name = grn_36_rand_2D.tex
-  [../]
-  [./voronoi]
-    type = PolycrystalVoronoi
-    coloring_algorithm = jp
-
-    int_width = 5
-    rand_seed = 10
-  [../]
-  [./grain_tracker]
-    type = GrainTrackerMatProp # GrainTrackerElasticity
-    threshold = 0.2
-    compute_var_to_feature_map = true
-    execute_on = 'initial timestep_begin'
-
-    C_ijkl = '1.27e5 0.708e5 0.708e5 1.27e5 0.708e5 1.27e5 0.7355e5 0.7355e5 0.7355e5'
-    fill_method = symmetric9
-
-    flood_entity_type = ELEMENTAL
-    euler_angle_provider = euler_angle_file
-  [../]
-[]
-
-[VectorPostprocessors]
-  [./grain_volumes]
-    type = FeatureMatePropVectorPostprocessor
-    flood_counter = grain_tracker
-    mat_prop = elastic_energy
-    execute_on = 'INITIAL TIMESTEP_BEGIN' # TIMESTEP_BEGIN ~ Must exist, otherwise an error will be reported
-  [../]
-[]
-
-[Materials]
-  [./Copper]
-    type = GBEvolution
-    block = 0
-    T = 500 # K
-    wGB = 5 # nm
-    # GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
-    # Q = 0.23 # Migration energy in eV
-    GBMobility = 0.0
-    GBenergy = 0.708 # GB energy in J/m^2
-
-    # length_scale = 1.0e-9
-    # time_scale = 1.0
-  [../]
-  [./free_energy]
-    type = DerivativeParsedMaterial
-    coupled_variables = 'gr0 gr1 gr2 gr3 gr4'
-    material_property_names = 'mu gamma_asymm'
-    expression = 'mu*( gr0^4/4.0 - gr0^2/2.0 + gr1^4/4.0 - gr1^2/2.0 + gr2^4/4.0 - gr2^2/2.0 + gr3^4/4.0 - gr3^2/2.0 + gr4^4/4.0 - gr4^2/2.0 + gamma_asymm*(gr0^2*gr1^2 + gr0^2*gr2^2 + gr0^2*gr3^2 + gr0^2*gr4^2 + gr1^2*gr2^2 + gr1^2*gr3^2 + gr1^2*gr4^2 + gr2^2*gr3^2 + gr2^2*gr4^2 + gr3^2*gr4^2)) + 1.0/4.0'
-    derivative_order = 1
-    enable_jit = true
-    property_name = ft
-    output_properties = 'dft/dgr0' #  delastic_energy/dgr1 delastic_energy/dgr2 delastic_energy/dgr3 delastic_energy/dgr4
-    outputs = my_exodus
-  [../]
-  [./ElasticityTensor]
-    type = ComputePolyElasticTensorCpl # ComputePolycrystalElasticityTensor
-    grain_tracker = grain_tracker
-  [../]
-  [./stress]
-    type = ComputePolyMultCPStressCpl # ComputeMultipleCrystalPlasticityStress
-    crystal_plasticity_models = 'trial_xtalpl'
-    tan_mod_type = exact
-
-    # rtol = 1e-6 # Constitutive stress residual relative tolerance
-    # maxiter_state_variable = 50 # Maximum number of iterations for stress update
-    # maximum_substep_iteration = 25 # Maximum number of substep iteration
-
-    use_line_search = true
-
-    grain_tracker = grain_tracker
-    vpp = grain_volumes
-
-    output_properties = 'delastic_energy/dgr0' #  delastic_energy/dgr1 delastic_energy/dgr2 delastic_energy/dgr3 delastic_energy/dgr4
-    outputs = my_exodus
-  [../]
-  [./trial_xtalpl]
-    type = CrystalPlasticityKalidindiUpdate # CrystalPlasticityKalidindiUpdate
-    crystal_lattice_type = FCC
-    number_slip_systems = 12 
-    slip_sys_file_name = input_slip_sys.txt
-
-    ao = 0.0
-    gss_initial = 30.8
-    t_sat = 148
-    # h = 180
-    slip_increment_tolerance = 0.1 # Maximum allowable slip in an increment
-    stol = 0.1 # Constitutive internal state variable relative change tolerance
-    resistance_tol = 0.1
-  [../]
-  [./strain]
-    type = ComputeFiniteStrain
-    block = 0
-    displacements = 'disp_x disp_y'
-  [../]
-[]
-
 [Postprocessors]
   [./elastic_strain22]
     type = ElementAverageValue
@@ -308,6 +335,10 @@ my_filename2 = "t1_gg_elastic_cp"
   [./stress22]
     type = ElementAverageValue
     variable = stress22
+  [../]
+  [./pk2]
+   type = ElementAverageValue
+   variable = pk2
   [../]
   [./ngrains]
     type = FeatureFloodCount
@@ -324,6 +355,10 @@ my_filename2 = "t1_gg_elastic_cp"
     type = PerfGraphData
     section_name = "Root"
     data_type = total
+  [../]
+  [./gss]
+    type = ElementAverageValue
+    variable = gss
   [../]
 []
 
@@ -346,13 +381,13 @@ my_filename2 = "t1_gg_elastic_cp"
   nl_rel_tol = 1.0e-7
   start_time = 0.0
   # dt = 0.001
-  # dtmax = 0.1
-  end_time = 100
-  # num_steps = 5
+  dtmax = 0.2
+  # end_time = 100
+  num_steps = 3
   
   [./TimeStepper]
     type = IterationAdaptiveDT
-    dt = 0.1
+    dt = 0.05
     growth_factor = 1.2
     cutback_factor = 0.8
     optimal_iterations = 8
@@ -366,6 +401,12 @@ my_filename2 = "t1_gg_elastic_cp"
 []
 
 [Outputs]
+  [./my_checkpoint]
+    file_base = ./${my_filename}/out_${my_filename}
+    interval = 10
+    type = Checkpoint
+    additional_execute_on = 'INITIAL FINAL'
+  [../]
   [my_exodus]
     file_base = ./ex_${my_filename2}/out_${my_filename} 
     interval = 10
@@ -374,12 +415,12 @@ my_filename2 = "t1_gg_elastic_cp"
   [../]
   [./csv]
     file_base = ./csv_${my_filename}/out_${my_filename}
-    # interval = 5
+    interval = 10
     type = CSV
   [../]
   [pgraph]
     type = PerfGraphOutput
-    interval = 5
+    interval = 10
     level = 2                     # Default is 1
     heaviest_branch = false        # Default is false
     heaviest_sections = 7         # Default is 0
@@ -389,5 +430,5 @@ my_filename2 = "t1_gg_elastic_cp"
   print_linear_residuals = false
 []
 
-# mpiexec -np 35 ~/projects/qinglong/qinglong-opt -i coupled_elastic_energy_cp.i > 01.log
+# mpiexec -np 35 ~/projects/qinglong/qinglong-opt -i coupled_elastic_energy_0.i > 01.log
 # gdb --args ~/projects/qinglong/qinglong-dbg -i coupled_elastic_energy_cp.i

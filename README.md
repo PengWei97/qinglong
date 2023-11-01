@@ -51,6 +51,9 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
 
 ### 学习资料
 1. [Compute Finite Strain Elastic Stress](https://mooseframework.inl.gov/source/materials/crystal_plasticity/ComputeMultipleCrystalPlasticityStress.html)
+2. Input file:
+   1. /home/pw-moose/projects/moose/modules/combined/test/tests/ACGrGrElasticDrivingForce/bicrystal.i
+   2. 
 
 ### 建模流程
 2. 考虑背应力的晶体塑性模型 (后续加入)：
@@ -63,7 +66,19 @@ For more information see: [http://mooseframework.org/create-an-app/](http://moos
 7. Actions: PolyElasticEnergyDrivingCpl <-- PolycrystalElasticDrivingForce
 8. Kernels: ACGGElasticEnergyCpl <-- ACGrGrElasticDrivingForce
 9. input_file: coupled_elastic_energy_cp.i ~ 只考虑弹性能3
-10. TODO-结果测试
+10. 结果测试 ~ 失败
+11. 查看每个对象调用的顺序
+    1.  初始时刻-初始化（构造函数），先调用 GrainTrackerMatProp ，之后执行材料类： GBEvolution ，ComputePolyElasticTensorCpl ， ComputePolyMultCPStressCplV2 个三次，之后执行 FeatureMatePropVectorPostprocessorV2 ，最后kernels： ACGrGrPoly  +  ACGrGrElasticDrivingForce 各5次
+    2.  初始化之后， GrainTrackerMatProp 在设定 time_begin 执行一次，包括函数 `initialize execute finalize`.
+    3.  计算过程中，每个线性求解和非线性求解中都存在 computeQpElasticityTensor() 等
+    4.  判定该[_qp]存在新激活的晶粒，修改 GrainTracker, 在 GrainTracker中添加 _entity_var_to_features_old
+    5.  
+12. TODO-
+    1.  在 CrystalPlasticityKalidindiUpdate 对 _slip_resistance 进行插值处理
+    2.  结果测试： 去掉弹性能驱动力试试
+    3.  
+    4.  step 1: 对CPFEM计算所得的 Sigma， E^e 进行插值处理之后，再计算残差
+    5.  step 2：需要修改GrainTracker来确定每个[_qp]处新激活的晶粒，并设定CPFEM的内部状态变量
 ~~~~
 
 
@@ -74,6 +89,12 @@ cp /home/pw-moose/projects/moose/modules/phase_field/include/kernels/ACGrGrElast
 
 mkdir /home/pw-moose/projects/qinglong/src/kernels/
 mkdir /home/pw-moose/projects/qinglong/include/kernels/
+
+tar -jcvf 
+
+1. ll ex_t1_gg_elastic_cp/*.e-s*.20
+2. tar -cvf - ex_t1_gg_elastic_cp/*.e.* ex_case4_recovery_v42/*.e-s0095.* ex_case4_recovery_v42/*.e-s0045.* | pigz -9 -p 20 > ex_case4_recovery_v4_v42.tgz
+3. tar -cvf - ex_t2_gg_elastic/* | pigz -9 -p 20 > ex_t2_gg_elastic.tgz
 
 # 其他
 

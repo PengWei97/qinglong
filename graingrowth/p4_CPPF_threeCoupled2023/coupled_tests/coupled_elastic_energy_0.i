@@ -1,5 +1,5 @@
-my_filename = "t1_gg_elastic_cp"
-my_filename2 = "t1_gg_elastic_cp"
+my_filename = "t0_gg_elastic"
+my_filename2 = "t0_gg_elastic"
 
 [Mesh]
   type = GeneratedMesh
@@ -82,23 +82,14 @@ my_filename2 = "t1_gg_elastic_cp"
   [./PolycrystalKernel]
     # ACGrGrPoly ACInterface TimeDerivative
   [../]
-  # [./PolyElasticEnergyDrivingCpl]
-  #   # ACGGElasticEnergyCpl
-  # [../]
+  [./PolycrystalElasticDrivingForce]
+      # ACGrGrElasticDrivingForce
+  [../]
   [./TensorMechanics]
     use_displaced_mesh = true
     displacements = 'disp_x disp_y'
   [../]
 []
-
-# [Modules/TensorMechanics/Master/all]
-#   strain = FINITE # SMALL # FINITE
-#   # displacements = 'disp_x disp_y'
-#   # use_displaced_mesh = true
-
-#   # add_variables = true
-#   # generate_output = strain_yy
-# []
 
 [AuxKernels]
   [./BndsCalc]
@@ -211,7 +202,7 @@ my_filename2 = "t1_gg_elastic_cp"
     rand_seed = 10
   [../]
   [./grain_tracker]
-    type = GrainTrackerMatProp # GrainTrackerElasticity
+    type = GrainTrackerElasticity # GrainTrackerElasticity
     threshold = 0.2
     compute_var_to_feature_map = true
     execute_on = 'initial timestep_begin'
@@ -226,9 +217,9 @@ my_filename2 = "t1_gg_elastic_cp"
 
 [VectorPostprocessors]
   [./grain_volumes]
-    type = FeatureMatePropVectorPostprocessor
+    type = FeatureVolumeVectorPostprocessor # FeatureMatePropVectorPostprocessor
     flood_counter = grain_tracker
-    mat_prop = elastic_energy
+    # mat_prop = elastic_energy
     execute_on = 'INITIAL TIMESTEP_BEGIN' # TIMESTEP_BEGIN ~ Must exist, otherwise an error will be reported
   [../]
 []
@@ -239,64 +230,26 @@ my_filename2 = "t1_gg_elastic_cp"
     block = 0
     T = 500 # K
     wGB = 5 # nm
-    # GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
-    # Q = 0.23 # Migration energy in eV
-    GBMobility = 0.0
+    GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
+    Q = 0.23 # Migration energy in eV
+    # GBMobility = 0.0
     GBenergy = 0.708 # GB energy in J/m^2
 
     # length_scale = 1.0e-9
     # time_scale = 1.0
   [../]
-  [./free_energy]
-    type = DerivativeParsedMaterial
-    coupled_variables = 'gr0 gr1 gr2 gr3 gr4'
-    material_property_names = 'mu gamma_asymm'
-    expression = 'mu*( gr0^4/4.0 - gr0^2/2.0 + gr1^4/4.0 - gr1^2/2.0 + gr2^4/4.0 - gr2^2/2.0 + gr3^4/4.0 - gr3^2/2.0 + gr4^4/4.0 - gr4^2/2.0 + gamma_asymm*(gr0^2*gr1^2 + gr0^2*gr2^2 + gr0^2*gr3^2 + gr0^2*gr4^2 + gr1^2*gr2^2 + gr1^2*gr3^2 + gr1^2*gr4^2 + gr2^2*gr3^2 + gr2^2*gr4^2 + gr3^2*gr4^2)) + 1.0/4.0'
-    derivative_order = 1
-    enable_jit = true
-    property_name = ft
-    output_properties = 'dft/dgr0' #  delastic_energy/dgr1 delastic_energy/dgr2 delastic_energy/dgr3 delastic_energy/dgr4
-    outputs = my_exodus
-  [../]
   [./ElasticityTensor]
-    type = ComputePolyElasticTensorCpl # ComputePolycrystalElasticityTensor
+    type = ComputePolycrystalElasticityTensor # ComputePolycrystalElasticityTensor
     grain_tracker = grain_tracker
-  [../]
-  [./stress]
-    type = ComputePolyMultCPStressCpl # ComputeMultipleCrystalPlasticityStress
-    crystal_plasticity_models = 'trial_xtalpl'
-    tan_mod_type = exact
-
-    # rtol = 1e-6 # Constitutive stress residual relative tolerance
-    # maxiter_state_variable = 50 # Maximum number of iterations for stress update
-    # maximum_substep_iteration = 25 # Maximum number of substep iteration
-
-    use_line_search = true
-
-    grain_tracker = grain_tracker
-    vpp = grain_volumes
-
-    output_properties = 'delastic_energy/dgr0' #  delastic_energy/dgr1 delastic_energy/dgr2 delastic_energy/dgr3 delastic_energy/dgr4
-    outputs = my_exodus
-  [../]
-  [./trial_xtalpl]
-    type = CrystalPlasticityKalidindiUpdate # CrystalPlasticityKalidindiUpdate
-    crystal_lattice_type = FCC
-    number_slip_systems = 12 
-    slip_sys_file_name = input_slip_sys.txt
-
-    ao = 0.0
-    gss_initial = 30.8
-    t_sat = 148
-    # h = 180
-    slip_increment_tolerance = 0.1 # Maximum allowable slip in an increment
-    stol = 0.1 # Constitutive internal state variable relative change tolerance
-    resistance_tol = 0.1
   [../]
   [./strain]
-    type = ComputeFiniteStrain
+    type = ComputeFiniteStrain # ComputeSmallStrain
     block = 0
     displacements = 'disp_x disp_y'
+  [../]
+  [./stress]
+    type = ComputeFiniteStrainElasticStress # ComputeLinearElasticStress
+    block = 0
   [../]
 []
 
@@ -347,8 +300,8 @@ my_filename2 = "t1_gg_elastic_cp"
   start_time = 0.0
   # dt = 0.001
   # dtmax = 0.1
-  end_time = 100
-  # num_steps = 5
+  # end_time = 100
+  num_steps = 3
   
   [./TimeStepper]
     type = IterationAdaptiveDT
@@ -368,7 +321,7 @@ my_filename2 = "t1_gg_elastic_cp"
 [Outputs]
   [my_exodus]
     file_base = ./ex_${my_filename2}/out_${my_filename} 
-    interval = 10
+    interval = 2
     type = Nemesis
     additional_execute_on = 'FINAL'
   [../]
@@ -389,5 +342,5 @@ my_filename2 = "t1_gg_elastic_cp"
   print_linear_residuals = false
 []
 
-# mpiexec -np 35 ~/projects/qinglong/qinglong-opt -i coupled_elastic_energy_cp.i > 01.log
+# mpiexec -np 35 ~/projects/qinglong/qinglong-opt -i coupled_elastic_energy_0.i > 01.log
 # gdb --args ~/projects/qinglong/qinglong-dbg -i coupled_elastic_energy_cp.i

@@ -128,7 +128,7 @@ my_filename2 = "t0_cp_elastic"
     fill_method = symmetric9
   [../]
   [./stress]
-    type = computePolyMultCPElasticStressCpl # ComputeMultipleCrystalPlasticityStress
+    type = # computePolyMultCPElasticStressCpl # ComputeMultipleCrystalPlasticityStress
     crystal_plasticity_models = 'trial_xtalpl'
     tan_mod_type = exact
 

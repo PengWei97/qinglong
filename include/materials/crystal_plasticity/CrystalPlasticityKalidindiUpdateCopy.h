@@ -10,6 +10,8 @@
 #pragma once
 
 #include "CrystalPlasticityStressUpdateBaseCopy.h"
+#include "GrainTrackerMatProp.h"
+#include "FeatureVolumeVectorPostprocessorCopy.h"
 
 class CrystalPlasticityKalidindiUpdateCopy;
 
@@ -141,4 +143,19 @@ protected:
   const MaterialProperty<Real> * const _twin_volume_fraction_total;
 
   MaterialProperty<std::vector<Real>> & _slip_resistance_copy;
+
+  const GrainTrackerMatProp & _grain_tracker; /// Grain tracker object
+  const unsigned int _op_num; /// Number of order parameters
+  const std::vector<const VariableValue *> _vals; /// Order parameters
+  
+  // 通过 FeatureVolumeVectorPostprocessorCopy 获取 _slip_resistance_alpha <std::vector<std::vector<Real>>> grain_id * 12, 找打序参数索引最大的参数，调用其最大的一组 slip resistance
+  void transformStateVariableFromPF2CP();
+  
+  // // 如果发现新激活的晶粒，将_slip_resistance_sl# 设定为初始值
+  // void transformStateVariableFromCP2PF();
+
+  // const std::vector<Real> & _slip_resistances_for_grain_id;
+
+  FEProblemBase & _fe_problem;
+  // const FeatureVolumeVectorPostprocessorCopy * _vpp_object_ptr; // TODO 替换成_vpp_object_ptr 对于VectorPostprocessorValue
 };

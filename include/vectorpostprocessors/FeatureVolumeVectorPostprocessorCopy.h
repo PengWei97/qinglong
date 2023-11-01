@@ -46,6 +46,8 @@ public:
    */
   Real getFeatureVolume(unsigned int feature_id) const;
 
+  std::vector<Real> & getSlipResistances(unsigned int feature_id);
+
 protected:
   /// A Boolean indicating how the volume is calculated
   const bool _single_feature_per_elem;
@@ -60,10 +62,13 @@ protected:
   VectorPostprocessorValue & _intersects_specified_bounds;
   VectorPostprocessorValue & _percolated;
 
+  unsigned int _num_slip_systems;
+  std::vector<std::vector<Real>> & _grain_id_to_slip_resistances; 
+  
   /// Indicates whether the calculation should be run on volumes or area of a boundary
   bool _is_boundary_restricted;
 
-private:
+// private:
   /// Add volume contributions to one or entries in the feature volume vector
   void accumulateVolumes(const Elem * elem,
                          const std::vector<unsigned int> & var_to_features,
@@ -84,8 +89,6 @@ private:
   const std::vector<MooseVariableFEBase *> & _vars;
   std::vector<const VariableValue *> _coupled_sln;
 
-  const MaterialProperty<std::vector<Real>> & _slip_resistance;
-
   MooseMesh & _mesh;
   Assembly & _assembly;
   const MooseArray<Point> & _q_point;
@@ -96,4 +99,8 @@ private:
   const MooseArray<Real> & _JxW_face;
 
   std::array<VectorPostprocessorValue *, 3> _centroid;
+
+  const MaterialProperty<std::vector<Real>> & _slip_resistance;
+
+  std::vector<Real> computeSlipResistanceVectorIntegral(std::size_t var_index) const;
 };

@@ -7,9 +7,9 @@ my_filename2 = "t0_gg_elastic_fatigue"
     block = 0
     T = 500 # K
     wGB = 5 # nm
-    GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
-    Q = 0.23 # Migration energy in eV
-    # GBMobility = 0.0
+    # GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
+    # Q = 0.23 # Migration energy in eV
+    GBMobility = 0.0
     GBenergy = 0.708 # GB energy in J/m^2
 
     # length_scale = 1.0e-9
@@ -43,7 +43,7 @@ my_filename2 = "t0_gg_elastic_fatigue"
     resistance_tol = 0.1
 
     # grain_tracker = grain_tracker
-
+    vpp_name = grain_volumes
     output_properties = 'slip_resistance'
     outputs = my_exodus
   [../]
@@ -289,7 +289,8 @@ my_filename2 = "t0_gg_elastic_fatigue"
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    expression = '0.05*sin(2*pi*t)' # 'if (t<90,0.1*t,9.0)'
+    # expression = '0.05*sin(2*pi*t)' # fatigue
+    expression = '0.1*t' # 'if (t<90,0.1*t,9.0)'
   [../]
 []
 
@@ -376,8 +377,8 @@ my_filename2 = "t0_gg_elastic_fatigue"
   start_time = 0.0
   # dt = 0.001
   dtmax = 0.2
-  # end_time = 100
-  num_steps = 3
+  end_time = 100
+  # num_steps = 3
   
   [./TimeStepper]
     type = IterationAdaptiveDT
@@ -403,7 +404,7 @@ my_filename2 = "t0_gg_elastic_fatigue"
   [../]
   [my_exodus]
     file_base = ./ex_${my_filename2}/out_${my_filename} 
-    interval = 10
+    interval = 3
     type = Nemesis
     additional_execute_on = 'FINAL'
   [../]

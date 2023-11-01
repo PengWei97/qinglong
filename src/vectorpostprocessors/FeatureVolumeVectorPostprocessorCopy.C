@@ -65,7 +65,10 @@ FeatureVolumeVectorPostprocessorCopy::FeatureVolumeVectorPostprocessorCopy(
     _coord(_assembly.coordTransformation()),
     _qrule_face(_assembly.qRuleFace()),
     _JxW_face(_assembly.JxWFace()),
-    _slip_resistance(getMaterialProperty<std::vector<Real>>("slip_resistance_copy"))
+
+    _slip_resistance(getMaterialProperty<std::vector<Real>>("slip_resistance_copy")),
+    _grain_id_to_slip_resistances(declareRestartableData<std::vector<std::vector<Real>>>("grain_id_to_slip_resistances")),
+    _num_slip_systems(12)        
 {
   addMooseVariableDependency(_vars);
 
@@ -84,10 +87,6 @@ FeatureVolumeVectorPostprocessorCopy::FeatureVolumeVectorPostprocessorCopy(
 void
 FeatureVolumeVectorPostprocessorCopy::initialize()
 {
-  std::cout << "_slip_resistance[0].size() " << _slip_resistance[0].size() << std::endl;
-
-  for (const auto i : make_range(_slip_resistance[0].size()))
-    std::cout << "_slip_resistance[0][" << i << "]: " << _slip_resistance[0][i] << std::endl;
 }
 
 void
@@ -130,6 +129,10 @@ FeatureVolumeVectorPostprocessorCopy::execute()
 
   // Reset the volume vector
   _feature_volumes.assign(num_features, 0);
+
+  _grain_id_to_slip_resistances.resize(num_features);
+  for (auto grain_id : make_range(num_features))
+    _grain_id_to_slip_resistances[grain_id].assign(12, 0.0);
 
   // Calculate coverage of a boundary if one has been supplied in the input file
   if (_is_boundary_restricted)
@@ -178,20 +181,6 @@ FeatureVolumeVectorPostprocessorCopy::execute()
 }
 
 void
-FeatureVolumeVectorPostprocessorCopy::finalize()
-{
-  // Do the parallel sum
-  _communicator.sum(_feature_volumes);
-}
-
-Real
-FeatureVolumeVectorPostprocessorCopy::getFeatureVolume(unsigned int feature_id) const
-{
-  mooseAssert(feature_id < _feature_volumes.size(), "feature_id is out of range");
-  return _feature_volumes[feature_id];
-}
-
-void
 FeatureVolumeVectorPostprocessorCopy::accumulateVolumes(
     const Elem * elem,
     const std::vector<unsigned int> & var_to_features,
@@ -200,7 +189,7 @@ FeatureVolumeVectorPostprocessorCopy::accumulateVolumes(
   unsigned int dominant_feature_id = FeatureFloodCount::invalid_id;
   Real max_var_value = std::numeric_limits<Real>::lowest();
 
-  for (MooseIndex(var_to_features) var_index = 0; var_index < var_to_features.size(); ++var_index)
+  for (MooseIndex(var_to_features) var_index = 0; var_index < var_to_features.size(); ++var_index) // 序参数数目
   {
     // Only sample "active" variables
     if (var_to_features[var_index] != FeatureFloodCount::invalid_id)
@@ -222,12 +211,72 @@ FeatureVolumeVectorPostprocessorCopy::accumulateVolumes(
       // Solution based volume calculation (integral value)
       else
         _feature_volumes[feature_id] += integral_value;
+
+      // 对每个grain id的RSs执行积分求和操作
+      std::vector<Real> slip_resistances_integral_value = computeSlipResistanceVectorIntegral(var_index);
+
+      for (auto sr_index : make_range(_num_slip_systems))
+        _grain_id_to_slip_resistances[feature_id][sr_index] += slip_resistances_integral_value[sr_index];
     }
   }
 
   // Accumulate the entire element volume into the dominant feature. Do not use the integral value
   if (_single_feature_per_elem && dominant_feature_id != FeatureFloodCount::invalid_id)
     _feature_volumes[dominant_feature_id] += _assembly.elementVolume(elem);
+}
+
+std::vector<Real> // grain_id
+FeatureVolumeVectorPostprocessorCopy::computeSlipResistanceVectorIntegral(std::size_t var_index) const
+{
+  std::vector<Real> sum(_num_slip_systems, 0.0);
+
+  for (auto sr_index : make_range(_num_slip_systems))
+    for (unsigned int qp = 0; qp < _qrule->n_points(); ++qp)
+      sum[sr_index] += _JxW[qp] * _coord[qp] * (*_coupled_sln[var_index])[qp] * _slip_resistance[qp][sr_index];
+
+  return sum;
+}
+
+void
+FeatureVolumeVectorPostprocessorCopy::finalize()
+{
+  // Do the parallel sum
+  _communicator.sum(_feature_volumes);
+
+  auto num_features = _feature_volumes.size();
+  for (auto grain_id : make_range(num_features))
+    _communicator.sum(_grain_id_to_slip_resistances[grain_id]);
+
+  for (MooseIndex(num_features) feature_num = 0; feature_num < num_features; ++feature_num)
+  {
+    if (_feature_volumes[feature_num] > 0.0)
+    {
+      for (auto sr_index : make_range(_num_slip_systems))
+        _grain_id_to_slip_resistances[feature_num][sr_index] /= _feature_volumes[feature_num];
+    }
+    else
+    {
+      _grain_id_to_slip_resistances[feature_num].assign(12, 0.0);
+    }
+  }
+}
+
+Real
+FeatureVolumeVectorPostprocessorCopy::getFeatureVolume(unsigned int feature_id) const
+{
+  mooseAssert(feature_id < _feature_volumes.size(), "feature_id is out of range");
+  return _feature_volumes[feature_id];
+}
+
+std::vector<Real> & 
+FeatureVolumeVectorPostprocessorCopy::getSlipResistances(unsigned int feature_id)
+{
+  mooseAssert(feature_id < _feature_volumes.size(), "feature_id is out of range");
+
+  // if (_grain_id_to_slip_resistances.size() == 0)
+  //   return temp_sr;
+  // else
+  return _grain_id_to_slip_resistances[feature_id];
 }
 
 Real

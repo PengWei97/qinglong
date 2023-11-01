@@ -9,6 +9,8 @@
 
 #include "CrystalPlasticityKalidindiUpdateCopy.h"
 #include "libmesh/int_range.h"
+#include "FEProblem.h"
+#include "FeatureVolumeVectorPostprocessor.h"
 
 registerMooseObject("TensorMechanicsApp", CrystalPlasticityKalidindiUpdateCopy);
 
@@ -28,6 +30,14 @@ CrystalPlasticityKalidindiUpdateCopy::validParams()
   params.addParam<MaterialPropertyName>(
       "total_twin_volume_fraction",
       "Total twin volume fraction, if twinning is considered in the simulation");
+
+  params.addRequiredParam<VectorPostprocessorName>(
+      "vectorpostprocessor", "The name of the VectorPostprocessor to pull the data from.");
+
+  params.addRequiredParam<UserObjectName>(
+      "grain_tracker", "Name of GrainTracker user object that provides RankFourTensors");
+  params.addRequiredCoupledVarWithAutoBuild(
+      "v", "var_name_base", "op_num", "Array of coupled variables");
 
   return params;
 }
@@ -57,7 +67,11 @@ CrystalPlasticityKalidindiUpdateCopy::CrystalPlasticityKalidindiUpdateCopy(
     _twin_volume_fraction_total(_include_twinning_in_Lp
                                     ? &getMaterialPropertyOld<Real>("total_twin_volume_fraction")
                                     : nullptr),
-    _slip_resistance_copy(declareProperty<std::vector<Real>>("slip_resistance_copy"))                                  
+    _slip_resistance_copy(declareProperty<std::vector<Real>>("slip_resistance_copy")),
+    _grain_tracker(getUserObject<GrainTrackerMatProp>("grain_tracker")),
+    _op_num(coupledComponents("v")),
+    _vals(coupledValues("v")),
+    _fe_problem(*parameters.get<FEProblem *>("_fe_problem"))
 {
 }
 
@@ -76,16 +90,60 @@ CrystalPlasticityKalidindiUpdateCopy::initQpStatefulProperties()
   }
 
   _slip_resistance_copy[_qp] = _slip_resistance[_qp];
+
+  auto _vpp_object_ptr = dynamic_cast<FeatureVolumeVectorPostprocessor *>(const_cast<VectorPostprocessor *>(&_fe_problem.getVectorPostprocessorObjectByName("grain_volumes")));
+
+  if (!_vpp_object_ptr)
+    mooseError("Pointer cast failed! Object is not of expected type");
+
+  std::cout << "~~~~~~3" << std::endl;
   
-  std::cout << "_slip_resistance_copy[_qp].size() " << _slip_resistance_copy[_qp].size() << std::endl;
+  // const auto obtain_value = _vpp_object_ptr->getSlipResistances(1);
+  unsigned int grain_id = 1;
+  auto obtain_value = _vpp_object_ptr->getFeatureVolume(grain_id); 
+
+  std::cout << "~~~~~~4" << std::endl;
+  // for (const Real & sr_value : obtain_value)
+  //   std::cout << sr_value << ", ";
+  
+  // std::cout << std::endl;
 }
 
 void
 CrystalPlasticityKalidindiUpdateCopy::setInitialConstitutiveVariableValues()
 {
   // Would also set old dislocation densities here if included in this model
+
+  // transformStateVariableFromPF2CP();
+
   _slip_resistance[_qp] = _slip_resistance_old[_qp];
   _previous_substep_slip_resistance = _slip_resistance_old[_qp];
+}
+
+void
+CrystalPlasticityKalidindiUpdateCopy::transformStateVariableFromPF2CP()
+{
+  const auto & op_to_grains = _grain_tracker.getVarToFeatureVector(_current_elem->id());
+
+  unsigned int max_op_index = 0;
+  unsigned int max_grain_id = 0;
+  Real max_op_val = (*_vals[max_op_index])[_qp];
+  for (auto op_index : make_range(op_to_grains.size()))
+  {
+    auto grain_id = op_to_grains[op_index];
+    if (grain_id == FeatureFloodCount::invalid_id)
+      continue;
+    
+    if (max_op_val < (*_vals[op_index])[_qp])
+    {
+      max_grain_id = grain_id;
+      max_op_index = op_index;
+      unsigned int max_grain_id = op_to_grains[max_op_index];
+      Real max_op_val = (*_vals[max_op_index])[_qp];
+    }
+  }
+
+    _previous_substep_slip_resistance = _slip_resistance[_qp];
 }
 
 void
