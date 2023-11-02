@@ -48,7 +48,7 @@ protected:
    * The state parameter sequence obtained from PF is converted into the unique
    * state parameter in CP, such as _slip_resistance.
    */
-  void convertStateVariablesFromPFtoPF();
+  void convertStateVariablesFromPFtoCP();
   
   /**
    * Sets the current slip system resistance value to the previous substep value.
@@ -156,4 +156,8 @@ protected:
 
   FEProblemBase & _fe_problem;
   int & _t_step;
+  const VectorPostprocessorName & _vpp_name;
+
+  MaterialProperty<unsigned int> & _number_active_grains;
+  const MaterialProperty<unsigned int> & _number_active_grains_old;
 };
