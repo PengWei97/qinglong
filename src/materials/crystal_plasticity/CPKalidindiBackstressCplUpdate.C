@@ -15,7 +15,7 @@ registerMooseObject("TensorMechanicsApp", CPKalidindiBackstressCplUpdate);
 InputParameters
 CPKalidindiBackstressCplUpdate::validParams()
 {
-  InputParameters params = CrystalPlasticityKalidindiUpdate::validParams();
+  InputParameters params = CPKalidindiBackstressUpdate::validParams();
   params.addClassDescription("Kalidindi version of homogeneous crystal plasticity considering phase-field coupling.");
 
   params.addRequiredParam<VectorPostprocessorName>(
@@ -60,7 +60,7 @@ CPKalidindiBackstressCplUpdate::setInitialConstitutiveVariableValues()
     convertStateVariablesFromPFtoCP();
 }
 
-void
+void 
 CPKalidindiBackstressCplUpdate::convertStateVariablesFromPFtoCP()
 {
   // Get list of active order parameters from grain tracker
@@ -88,16 +88,23 @@ CPKalidindiBackstressCplUpdate::convertStateVariablesFromPFtoCP()
   if (_number_active_grains[_qp] == 1) // inside grain
   {
     if (_number_active_grains[_qp] == _number_active_grains_old[_qp])
+    {
       _slip_resistance[_qp] = _slip_resistance_old[_qp];
+      _backstress[_qp] = _backstress_old[_qp];
+      }
     else
+    {
       _slip_resistance[_qp].resize(_number_slip_systems, _gss_initial);
+      _backstress[_qp].resize(_number_slip_systems, 0.0);
+    }
   }
   else if (_number_active_grains[_qp] > 1) // at GB or junction
   {
     std::vector<std::vector<Real>> grain_to_resistance_slips(active_op_indexs.size());
+    std::vector<std::vector<Real>> grain_to_backstresses(active_op_indexs.size());
 
     // TODO： want need set it to be _vpp_object_ptr
-    const FeatureMatPropVectorPostprocessor * vpp_object_ptr = dynamic_cast<FeatureMatPropVectorPostprocessor *>(const_cast<VectorPostprocessor *>(&_fe_problem.getVectorPostprocessorObjectByName(_vpp_name)));
+    const FeatureMatPropCplVectorPostprocessor * vpp_object_ptr = dynamic_cast<FeatureMatPropCplVectorPostprocessor *>(const_cast<VectorPostprocessor *>(&_fe_problem.getVectorPostprocessorObjectByName(_vpp_name)));
 
     if (!vpp_object_ptr)
       mooseError("Pointer cast failed! Object is not of expected type");    
@@ -120,11 +127,20 @@ CPKalidindiBackstressCplUpdate::convertStateVariablesFromPFtoCP()
         auto grain_id = op_to_grains[op_index];
 
         if (op_val >= critical_op_val && op_val == max_op_index)
+        {
           grain_to_resistance_slips[i] = _slip_resistance_old[_qp];
+          grain_to_backstresses[i] = _backstress_old[_qp];
+        }
         else if (op_val >= critical_op_val)
-          grain_to_resistance_slips[i] = vpp_object_ptr->getSlipResistance(grain_id);
+        {
+          grain_to_resistance_slips[i] = vpp_object_ptr->getStateVariable(grain_id, state_variable::slip_resistance);
+          grain_to_backstresses[i] = vpp_object_ptr->getStateVariable(grain_id, state_variable::backstress);
+        }
         else
+        {
           grain_to_resistance_slips[i].resize(_number_slip_systems, _gss_initial);
+          grain_to_backstresses[i].resize(_number_slip_systems, 0.0);
+        }
       }
     }
     else // No new activated grains or reduce the number of activated grains
@@ -135,10 +151,14 @@ CPKalidindiBackstressCplUpdate::convertStateVariablesFromPFtoCP()
         if (op_index != max_op_index) // second: _slip_resistance_ave
         {
           auto grain_id = op_to_grains[op_index];
-          grain_to_resistance_slips[i] = vpp_object_ptr->getSlipResistance(grain_id);
+          grain_to_resistance_slips[i] = vpp_object_ptr->getStateVariable(grain_id, state_variable::slip_resistance);
+          grain_to_backstresses[i] = vpp_object_ptr->getStateVariable(grain_id, state_variable::backstress);
         }
         else // primary
+        {
           grain_to_resistance_slips[i] = _slip_resistance_old[_qp];
+          grain_to_backstresses[i] = _backstress_old[_qp];
+        }
       }
     }
 
@@ -146,6 +166,7 @@ CPKalidindiBackstressCplUpdate::convertStateVariablesFromPFtoCP()
     Real sum_h = 0.0;
     _slip_resistance[_qp].clear();
     std::vector<Real> sum_slip_resistance(_number_slip_systems, 0.0);
+    std::vector<Real> sum_backstress(_number_slip_systems, 0.0);
 
     for (unsigned int i = 0; i < active_op_indexs.size(); i++)
     {
@@ -155,13 +176,19 @@ CPKalidindiBackstressCplUpdate::convertStateVariablesFromPFtoCP()
       sum_h += h;
 
       for (unsigned int sr_index = 0; sr_index < _number_slip_systems; sr_index++)
+      {
         sum_slip_resistance[sr_index] += grain_to_resistance_slips[i][sr_index] * h;
+        sum_backstress[sr_index] += grain_to_backstresses[i][sr_index] * h;
+      }
     }
 
     const Real tol = 1.0e-10;
     sum_h = std::max(sum_h, tol);
 
     for (unsigned int sr_index = 0; sr_index < _number_slip_systems; sr_index++)
+    {
       _slip_resistance[_qp][sr_index] = sum_slip_resistance[sr_index] / sum_h;
+      _backstress[_qp][sr_index] = sum_backstress[sr_index] / sum_h;
+    }
   }
 }

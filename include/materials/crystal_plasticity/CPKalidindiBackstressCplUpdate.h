@@ -2,7 +2,7 @@
 
 #include "CPKalidindiBackstressUpdate.h"
 #include "GrainTrackerMatProp.h"
-#include "FeatureMatPropVectorPostprocessor.h"
+#include "FeatureMatPropCplVectorPostprocessor.h"
 #include "FEProblem.h"
 
 /*
@@ -16,6 +16,9 @@
 
    Elastic energy and Plasticity: // TODO
 */
+
+typedef MaterialProperty<std::vector<Real>> MaterialPropVec;
+typedef std::vector<std::vector<Real>> Matrix2D;
 
 class CPKalidindiBackstressCplUpdate;
 
