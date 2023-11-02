@@ -63,11 +63,10 @@ protected:
   /// Indicates whether the calculation should be run on volumes or area of a boundary
   bool _is_boundary_restricted;
 
-private:
   /// Add volume contributions to one or entries in the feature volume vector
-  void accumulateVolumes(const Elem * elem,
-                         const std::vector<unsigned int> & var_to_features,
-                         std::size_t num_features);
+  virtual void accumulateVolumes(const Elem * elem,
+                                 const std::vector<unsigned int> & var_to_features,
+                                 std::size_t num_features);
 
   /// When boundary is supplied as input, compute coverage of that boundary by each feature
   void accumulateBoundaryFaces(const Elem * elem,
