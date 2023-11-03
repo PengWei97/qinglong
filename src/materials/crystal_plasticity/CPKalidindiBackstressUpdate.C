@@ -39,6 +39,7 @@ CPKalidindiBackstressUpdate::CPKalidindiBackstressUpdate(
     _previous_substep_backstress(_number_slip_systems, 0.0),
     _backstress_before_update(_number_slip_systems, 0.0)
 {
+  std::cout << "CPKalidindiBackstressUpdate::CPKalidindiBackstressUpdate " << std::endl;
 }
 
 void

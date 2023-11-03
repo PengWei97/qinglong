@@ -1,12 +1,3 @@
-//* This file is part of the MOOSE framework
-//* https://www.mooseframework.org
-//*
-//* All rights reserved, see COPYRIGHT for full restrictions
-//* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-//*
-//* Licensed under LGPL 2.1, please see LICENSE for details
-//* https://www.gnu.org/licenses/lgpl-2.1.html
-
 #include "FeatureMatPropCplVectorPostprocessor.h"
 
 registerMooseObject("qinglongApp", FeatureMatPropCplVectorPostprocessor);
@@ -16,17 +7,15 @@ FeatureMatPropCplVectorPostprocessor::validParams()
 {
   InputParameters params = FeatureDataVectorPostprocessor::validParams();
 
-  params.addParam<std::string>("base_name", "Name to append to reporters.");    
+  params.addParam<std::string>("base_name", "Name to append to reporters."); 
   params.addParam<unsigned int>("number_slip_systems", 12,
-                                "The total number of possible active slip systems for the crystalline material");
+                                "The total number of possible active slip systems for the crystalline material");  
 
-  params.addClassDescription("This object is designed to pull information from the data structures "
-                             "of a \"FeatureFloodCount\" or derived object (e.g. individual "
-                             "feature volumes)"); // TODO   
-  return params;
+  return params;                                
 }
 
-FeatureMatPropCplVectorPostprocessor::FeatureMatPropCplVectorPostprocessor(const InputParameters & parameters)
+FeatureMatPropCplVectorPostprocessor::FeatureMatPropCplVectorPostprocessor(
+    const InputParameters & parameters)
   : FeatureDataVectorPostprocessor(parameters),
     _number_slip_systems(getParam<unsigned int>("number_slip_systems")),
     _slip_resistances(declareRestartableData<std::vector<std::vector<Real>>>("slip_resistances")),    
@@ -40,8 +29,9 @@ FeatureMatPropCplVectorPostprocessor::FeatureMatPropCplVectorPostprocessor(const
 void
 FeatureMatPropCplVectorPostprocessor::execute()
 {
-  const auto num_features = _feature_counter.getTotalFeatureCount();
+  FeatureDataVectorPostprocessor::execute();
 
+  const auto num_features = _feature_counter.getTotalFeatureCount();
   // Reset the state variables vector
   _slip_resistances.resize(num_features);
   _backstresses.resize(num_features);
@@ -51,18 +41,30 @@ FeatureMatPropCplVectorPostprocessor::execute()
     _backstresses[grain_index].assign(_number_slip_systems, 0.0);
   }
 
-  FeatureDataVectorPostprocessor::execute();
+  for (const auto & elem : _mesh.getMesh().active_local_element_ptr_range())
+    {
+      _fe_problem.setCurrentSubdomainID(elem, 0);
+      _fe_problem.prepare(elem, 0);
+      _fe_problem.reinitElem(elem, 0);
+
+      /**
+       * Here we retrieve the var to features vector on the current element.
+       * We'll use that information to figure out which variables are non-zero
+       * (from a threshold perspective) then we can sum those values into
+       * appropriate grain index locations.
+       */
+      const auto & var_to_features = _feature_counter.getVarToFeatureVector(elem->id());
+
+      accumulateStateVariables(elem, var_to_features, num_features);
+    }
 }
 
 void
-FeatureMatPropCplVectorPostprocessor::accumulateVolumes(
+FeatureMatPropCplVectorPostprocessor::accumulateStateVariables(
     const Elem * elem,
     const std::vector<unsigned int> & var_to_features,
     std::size_t libmesh_dbg_var(num_features))
 {
-  unsigned int dominant_feature_id = FeatureFloodCount::invalid_id;
-  Real max_var_value = std::numeric_limits<Real>::lowest();
-
   for (MooseIndex(var_to_features) var_index = 0; var_index < var_to_features.size(); ++var_index)
   {
     // Only sample "active" variables
@@ -70,36 +72,18 @@ FeatureMatPropCplVectorPostprocessor::accumulateVolumes(
     {
       auto feature_id = var_to_features[var_index];
       mooseAssert(feature_id < num_features, "Feature ID out of range");
-      auto integral_value = computeIntegral(var_index);
-
-      // Compute volumes in a simplistic but domain conservative fashion
-      if (_single_feature_per_elem)
-      {
-        if (integral_value > max_var_value)
-        {
-          // Update the current dominant feature and associated value
-          max_var_value = integral_value;
-          dominant_feature_id = feature_id;
-        }
-      }
-      // Solution based volume calculation (integral value)
-      else
-        _feature_volumes[feature_id] += integral_value;
 
       std::vector<Real> slip_resistance_integral_value = computeStateVarivalesIntegral(var_index, _slip_resistance_copy);
+
       std::vector<Real> backstress_integral_value = computeStateVarivalesIntegral(var_index, _backstress_copy);
 
       for (auto sr_index : make_range(_number_slip_systems))
       {
         _slip_resistances[feature_id][sr_index] += slip_resistance_integral_value[sr_index];
         _backstresses[feature_id][sr_index] += backstress_integral_value[sr_index];
-      }
-    }
-  }
-
-  // Accumulate the entire element volume into the dominant feature. Do not use the integral value
-  if (_single_feature_per_elem && dominant_feature_id != FeatureFloodCount::invalid_id)
-    _feature_volumes[dominant_feature_id] += _assembly.elementVolume(elem);
+      } 
+    }  
+  }  
 }
 
 std::vector<Real> 
@@ -142,7 +126,7 @@ FeatureMatPropCplVectorPostprocessor::sum_state_variables(std::vector<std::vecto
 }
 
 std::vector<Real> 
-FeatureMatPropCplVectorPostprocessor::getStateVariable(unsigned int feature_id, const state_variable & state_variable_name) const //
+FeatureMatPropCplVectorPostprocessor::getStateVariable(unsigned int feature_id, const state_variable & state_variable_name)
 {
   mooseAssert(feature_id < _slip_resistances.size(), "feature_id is out of range");
 
@@ -156,3 +140,5 @@ FeatureMatPropCplVectorPostprocessor::getStateVariable(unsigned int feature_id, 
 
   return _backstresses[feature_id];
 }
+
+

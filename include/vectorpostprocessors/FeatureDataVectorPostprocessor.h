@@ -47,6 +47,9 @@ public:
    */
   Real getFeatureVolume(unsigned int feature_id) const;
 
+  // // _slip_resistance, _backstress
+  // std::vector<Real> getStateVariable(unsigned int feature_id, const state_variable & state_variable_name  = state_variable::slip_resistance);
+
 protected:
   /// A Boolean indicating how the volume is calculated
   const bool _single_feature_per_elem;
@@ -80,6 +83,8 @@ protected:
   /// Calculate the integral on the face if boundary is supplied as input
   Real computeFaceIntegral(std::size_t var_index) const;
 
+  // void sum_state_variables(std::vector<std::vector<Real>> & stat_variables, const unsigned int & num_features);
+
   const std::vector<MooseVariableFEBase *> & _vars;
   std::vector<const VariableValue *> _coupled_sln;
 
@@ -93,4 +98,9 @@ protected:
   const MooseArray<Real> & _JxW_face;
 
   std::array<VectorPostprocessorValue *, 3> _centroid;
+
+  // const unsigned int _number_slip_systems;
+
+  // std::vector<std::vector<Real>> & _slip_resistances;
+  // std::vector<std::vector<Real>> & _backstresses;  
 };

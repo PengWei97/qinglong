@@ -40,6 +40,8 @@ FeatureDataVectorPostprocessor::validParams()
 
   params.suppressParameter<bool>("contains_complete_history");
 
+  // params.addParam<unsigned int>("number_slip_systems", 12,
+  //                               "The total number of possible active slip systems for the crystalline material");
   return params;
 }
 
@@ -64,6 +66,9 @@ FeatureDataVectorPostprocessor::FeatureDataVectorPostprocessor(
     _coord(_assembly.coordTransformation()),
     _qrule_face(_assembly.qRuleFace()),
     _JxW_face(_assembly.JxWFace())
+    // _number_slip_systems(getParam<unsigned int>("number_slip_systems")),
+    // _slip_resistances(declareRestartableData<std::vector<std::vector<Real>>>("slip_resistances")),    
+    // _backstresses(declareRestartableData<std::vector<std::vector<Real>>>("backstresses"))    
 {
   addMooseVariableDependency(_vars);
 
@@ -120,6 +125,15 @@ FeatureDataVectorPostprocessor::execute()
   // Reset the volume vector
   _feature_volumes.assign(num_features, 0);
 
+  //  // Reset the state variables vector
+  // _slip_resistances.resize(num_features);
+  // _backstresses.resize(num_features);
+  // for (auto grain_index : make_range(num_features))
+  // {
+  //   _slip_resistances[grain_index].assign(_number_slip_systems, 0.0);
+  //   _backstresses[grain_index].assign(_number_slip_systems, 0.0);
+  // }  
+
   // Calculate coverage of a boundary if one has been supplied in the input file
   if (_is_boundary_restricted)
   {
@@ -171,7 +185,27 @@ FeatureDataVectorPostprocessor::finalize()
 {
   // Do the parallel sum
   _communicator.sum(_feature_volumes);
+
+  // auto num_features = _feature_volumes.size();
+  // sum_state_variables(_slip_resistances, num_features);
+  // sum_state_variables(_backstresses, num_features);
 }
+
+// void 
+// FeatureDataVectorPostprocessor::sum_state_variables(std::vector<std::vector<Real>> & stat_variables, const unsigned int & num_features)
+// {
+//   for (auto grain_index : make_range(num_features))
+//     _communicator.sum(stat_variables[grain_index]);
+
+//   for (auto grain_index : make_range(num_features))
+//   {
+//     if (_feature_volumes[grain_index] > 0.0)
+//       for (auto sr_index : make_range(_number_slip_systems))
+//         stat_variables[grain_index][sr_index] /= _feature_volumes[grain_index];
+//     else
+//       stat_variables[grain_index].assign(_number_slip_systems, 0.0);
+//   }
+// }
 
 Real
 FeatureDataVectorPostprocessor::getFeatureVolume(unsigned int feature_id) const
@@ -281,3 +315,11 @@ FeatureDataVectorPostprocessor::computeFaceIntegral(std::size_t var_index) const
 
   return sum;
 }
+
+// std::vector<Real> 
+// FeatureDataVectorPostprocessor::getStateVariable(unsigned int feature_id, const state_variable & state_variable_name)
+// {
+//   std::vector<Real> _temp_vect(12, 0.0);
+
+//   return _temp_vect;
+// }
