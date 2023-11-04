@@ -1509,8 +1509,8 @@ Real FeatureFloodCountCopy::getConnectingThreshold(std::size_t /*current_index*/
 bool
 FeatureFloodCountCopy::compareValueWithThreshold(Real entity_value, Real threshold) const
 {
-  return ((_use_less_than_threshold_comparison && (entity_value >= threshold)) ||
-          (!_use_less_than_threshold_comparison && (entity_value <= threshold)));
+  return ((_use_less_than_threshold_comparison && (std::abs(entity_value) >= threshold)) ||
+          (!_use_less_than_threshold_comparison && (std::abs(entity_value) <= threshold)));
 }
 
 bool
@@ -2272,9 +2272,14 @@ operator<<(std::ostream & out, const FeatureFloodCountCopy::FeatureData & featur
   }
 
   out << "\nBBoxes:";
+  Real volume = 0;
   for (const auto & bbox : feature._bboxes)
   {
     out << "\nMax: " << bbox.max() << " Min: " << bbox.min();
+    volume += (bbox.max()(0) - bbox.min()(0)) * (bbox.max()(1) - bbox.min()(1)) *
+              (MooseUtils::absoluteFuzzyEqual(bbox.max()(2), bbox.min()(2))
+                   ? 1
+                   : bbox.max()(2) - bbox.min()(2));
   }
 
   out << "\nStatus: ";
