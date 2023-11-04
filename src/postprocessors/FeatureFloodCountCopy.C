@@ -41,6 +41,7 @@ dataStore(std::ostream & stream, FeatureFloodCountCopy::FeatureData & feature, v
   storeHelper(stream, feature._periodic_nodes, context);
   storeHelper(stream, feature._var_index, context);
   storeHelper(stream, feature._id, context);
+  storeHelper(stream, feature._adjacent_id, context);
   storeHelper(stream, feature._bboxes, context);
   storeHelper(stream, feature._orig_ids, context);
   storeHelper(stream, feature._min_entity_id, context);
@@ -72,6 +73,7 @@ dataLoad(std::istream & stream, FeatureFloodCountCopy::FeatureData & feature, vo
   loadHelper(stream, feature._periodic_nodes, context);
   loadHelper(stream, feature._var_index, context);
   loadHelper(stream, feature._id, context);
+  loadHelper(stream, feature._adjacent_id, context);
   loadHelper(stream, feature._bboxes, context);
   loadHelper(stream, feature._orig_ids, context);
   loadHelper(stream, feature._min_entity_id, context);
@@ -266,7 +268,7 @@ FeatureFloodCountCopy::initialSetup()
   _entities_visited.resize(_vars.size());
 
   // Get a pointer to the PeriodicBoundaries buried in libMesh
-  _pbs = _fe_problem.getNonlinearSystemBase(_sys.number()).dofMap().get_periodic_boundaries();
+  _pbs = _fe_problem.getNonlinearSystemBase().dofMap().get_periodic_boundaries();
 
   meshChanged();
 
@@ -836,6 +838,63 @@ FeatureFloodCountCopy::getFeatureVar(unsigned int feature_id) const
                : invalid_id;
   }
 
+  return invalid_id;
+}
+
+unsigned int
+FeatureFloodCountCopy::getFeatureID(unsigned int feature_id) const
+{   
+  if (feature_id >= _feature_id_to_local_index.size())
+    return invalid_id;
+
+  auto local_index = _feature_id_to_local_index[feature_id];
+  if (local_index != invalid_size_t)
+  {
+    mooseAssert(local_index < _feature_sets.size(), "local_index out of bounds");
+
+    return _feature_sets[local_index]._status != Status::INACTIVE
+               ? _feature_sets[local_index]._id
+               : invalid_id;
+  }
+
+  return invalid_id;
+}
+
+std::vector<unsigned int>
+FeatureFloodCountCopy::getAdjacentID(unsigned int feature_id) const
+{ 
+  std::vector<unsigned int> invalid_id_vector(10,invalid_id);
+
+  if (feature_id >= _feature_id_to_local_index.size())
+    return invalid_id_vector;
+
+  auto local_index = _feature_id_to_local_index[feature_id];
+  if (local_index != invalid_size_t)
+  {
+    mooseAssert(local_index < _feature_sets.size(), "local_index out of bounds");
+
+    return _feature_sets[local_index]._status != Status::INACTIVE
+               ? _feature_sets[local_index]._adjacent_id
+               : invalid_id_vector;
+  }
+  return invalid_id_vector;
+}
+
+unsigned int
+FeatureFloodCountCopy::getNumAdjacentGrains(unsigned int feature_id) const
+{   
+  if (feature_id >= _feature_id_to_local_index.size())
+    return invalid_id;
+
+  auto local_index = _feature_id_to_local_index[feature_id];
+  if (local_index != invalid_size_t)
+  {
+    mooseAssert(local_index < _feature_sets.size(), "local_index out of bounds");
+
+    return _feature_sets[local_index]._status != Status::INACTIVE
+               ? _feature_sets[local_index]._adjacent_id.size()
+               : invalid_id;
+  }
   return invalid_id;
 }
 
@@ -2267,3 +2326,4 @@ const std::size_t FeatureFloodCountCopy::invalid_size_t = std::numeric_limits<st
 const unsigned int FeatureFloodCountCopy::invalid_id = std::numeric_limits<unsigned int>::max();
 const processor_id_type FeatureFloodCountCopy::invalid_proc_id =
     std::numeric_limits<processor_id_type>::max();
+    
