@@ -21,7 +21,7 @@ struct MisorientationAngleData{Real _misor = -1.0; bool _is_twin = false; TwinTy
  * This is an orientation difference calculator, inspired by MTEX.
  * However, it is an incomplete version and needs further optimization TODO.
  */
-namespace MisorientationAngleCalculator
+namespace MisoriAngleCalculator
 {
   // function 1: input Euler1 and Euler2, output s
   MisorientationAngleData calculateMisorientaion(EulerAngles & Euler1, EulerAngles & Euler2, MisorientationAngleData & s, const CrystalType & crystal_type = CrystalType::HCP);  

@@ -1,5 +1,5 @@
-my_filename = "t2_gg_elastic_tensile_poly2"
-my_filename2 = "t2_gg_elastic_tensile_poly2"
+my_filename = "t1_gg_elastic_fatigue"
+my_filename2 = "t1_gg_elastic_fatigue"
 
 [Materials]
   [./Copper]
@@ -17,7 +17,6 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   [../]
   [./ElasticityTensor]
     type = ComputePolyElasticTensorCpl # ComputePolycrystalElasticiyTensor
-    grain_tracker = grain_tracker
   [../]
   [./stress]
     type = ComputeMultCPStressCpl # ComputeMultipleCrystalPlasticityStress ComputeMultCPStressCpl
@@ -30,7 +29,7 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
     # maximum_substep_iteration = 25 # Maximum number of substep iteration
   [../]
   [./trial_xtalpl]
-    type = CPKalidindiBSCplUpdate # CrystalPlasticityKalidindiUpdate
+    type = CPKalidindiCplUpdate # CrystalPlasticityKalidindiUpdate
     crystal_lattice_type = FCC
     number_slip_systems = 12 
     slip_sys_file_name = input_slip_sys.txt
@@ -43,12 +42,8 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
     stol = 0.1 # Constitutive internal state variable relative change tolerance
     resistance_tol = 0.1
 
-    grain_tracker = grain_tracker
+    # grain_tracker = grain_tracker
     vpp_name = grain_volumes
-
-    c_bs = 0.0 # 1.0e4
-    d_bs = 0.0 # 1.0e2
-
     output_properties = 'slip_resistance'
     outputs = my_exodus
   [../]
@@ -96,15 +91,15 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
     flood_entity_type = ELEMENTAL
     euler_angle_provider = euler_angle_file
   [../]
-  # [./term]
-  #   type = Terminator
-  #   expression = 'run_time > 7200'
-  # [../]    
+  [./term]
+    type = Terminator
+    expression = 'run_time > 7200'
+  [../]    
 []
 
 [VectorPostprocessors]
   [./grain_volumes]
-    type = FeatureMatPropCplVectorPostprocessor # FeatureVolumeVectorPostprocessor FeatureMatPropCplVectorPostprocessor
+    type = FeatureMatPropVectorPostprocessor # FeatureVolumeVectorPostprocessor
     flood_counter = grain_tracker
     # mat_prop = elastic_energy
     execute_on = 'INITIAL TIMESTEP_BEGIN' 
@@ -118,23 +113,23 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   type = GeneratedMesh
   dim = 2
   nx = 20
-  ny = 20
-  xmax = 180
-  ymax = 180
+  ny = 10
+  xmax = 1000
+  ymax = 1000
   elem_type = QUAD4
+  uniform_refine = 2
 []
 
 [GlobalParams]
-  op_num = 5
+  op_num = 2
   var_name_base = gr
-  grain_num = 5
 
   displacements = 'disp_x disp_y'
 
   length_scale = 1.0e-9
   pressure_scale = 1.0e6
 
-  # grain_tracker = grain_tracker
+  grain_tracker = grain_tracker
 []
 
 [Variables]
@@ -152,8 +147,11 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
 
 [ICs]
   [./PolycrystalICs]
-    [./PolycrystalColoringIC]
-      polycrystal_ic_uo = voronoi
+    [./BicrystalBoundingBoxIC]
+      x1 = 0
+      y1 = 0
+      x2 = 50
+      y2 = 100
     [../]
   [../]
 []
@@ -295,7 +293,7 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   [./tdisp]
     type = ParsedFunction
     # expression = '0.05*sin(2*pi*t)' # fatigue
-    expression = 'if (t<18,0.1*t,1.8)' # '0.1*t'
+    expression = '0.1*t' # 'if (t<90,0.1*t,9.0)'
   [../]
 []
 
@@ -382,8 +380,8 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   start_time = 0.0
   # dt = 0.001
   dtmax = 0.2
-  end_time = 200
-  # num_steps = 3
+  # end_time = 100
+  num_steps = 3
   
   [./TimeStepper]
     type = IterationAdaptiveDT
@@ -409,12 +407,9 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   [../]
   [my_exodus]
     file_base = ./ex_${my_filename2}/out_${my_filename} 
-    # interval = 100
+    interval = 3
     type = Nemesis
     additional_execute_on = 'FINAL'
-    use_displaced = true
-    sync_only = true
-    sync_times = '1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17	18	19	20	21	22	23	24	25	26	27	28	29	30	31	32	33	34	35	36	37	38	39	40	41	42	43	44	45	46	47	48	49	50	51	52	53	54	55	56	57	58	59	60	61	62	63	64	65	66	67	68	69	70	71	72	73	74	75	76	77	78	79	80	81	82	83	84	85	86	87	88	89	90	91	92	93	94	95	96	97	98	99	100	101	102	103	104	105	106	107	108	109	110	111	112	113	114	115	116	117	118	119	120	121	122	123	124	125	126	127	128	129	130	131	132	133	134	135	136	137	138	139	140	141	142	143	144	145	146	147	148	149	150	151	152	153	154	155	156	157	158	159	160	161	162	163	164	165	166	167	168	169	170	171	172	173	174	175	176	177	178	179	180	181	182	183	184	185	186	187	188	189	190	191	192	193	194	195	196	197	198	199	200'
   [../]
   [./csv]
     file_base = ./csv_${my_filename}/out_${my_filename}

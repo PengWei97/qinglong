@@ -13,7 +13,7 @@
 
 #include "EulerAngleProvider.h"
 #include "GrainTracker.h"
-#include "MisorientationAngleCalculator.h"
+#include "MisoriAngleCalculator.h"
 
 // Forward Declarations
 

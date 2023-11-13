@@ -94,7 +94,7 @@ tar -jcvf
 
 1. ll ex_t1_gg_elastic_cp/*.e-s*.20
 2. tar -cvf - ex_t1_gg_elastic_cp/*.e.* ex_case4_recovery_v42/*.e-s0095.* ex_case4_recovery_v42/*.e-s0045.* | pigz -9 -p 20 > ex_case4_recovery_v4_v42.tgz
-3. tar -cvf - ex_t2_gg_elastic/* | pigz -9 -p 20 > ex_t2_gg_elastic.tgz
+3. tar -cvf - ex_t1_gg_elastic_tensile_bi/* | pigz -9 -p 20 > ex_t1_gg_elastic_tensile_bi.tgz
 
 # 其他
 

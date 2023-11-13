@@ -105,7 +105,7 @@ GBAnisotropyMisori::computeGBProperties()
         auto & _mob_ij = _mob[var_index[i]][var_index[j]];
 
         // calculate misorientation angle
-        _misori_s = MisorientationAngleCalculator::calculateMisorientaion(angles_i, angles_j, _misori_s, CrystalType::HCP);
+        _misori_s = MisoriAngleCalculator::calculateMisorientaion(angles_i, angles_j, _misori_s, CrystalType::HCP);
 
         if (_gb_energy_anisotropy && (time_current > 20.0))
           _sigma_ij = calculatedGBEnergy(_misori_s);

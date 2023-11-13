@@ -182,5 +182,8 @@ CPKalidindiBSCplUpdate::convertStateVariablesFromPFtoCP()
       _slip_resistance[_qp][sr_index] = sum_slip_resistance[sr_index] / sum_h;
       _backstress[_qp][sr_index] = sum_backstress[sr_index] / sum_h;
     }
-  }  
+  }
+
+  // _previous_substep_slip_resistance = _slip_resistance[_qp];
+  // _previous_substep_backstress = _backstress[_qp];
 }

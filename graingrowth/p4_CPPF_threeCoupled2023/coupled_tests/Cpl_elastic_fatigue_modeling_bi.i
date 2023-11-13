@@ -1,12 +1,12 @@
-my_filename = "t2_gg_elastic_tensile_poly2"
-my_filename2 = "t2_gg_elastic_tensile_poly2"
+my_filename = "t2_gg_elastic_fatigue_bi"
+my_filename2 = "t2_gg_elastic_fatigue_bi"
 
 [Materials]
   [./Copper]
     type = GBEvolution
     block = 0
     T = 500 # K
-    wGB = 5 # nm
+    wGB = 2 # nm
     GBmob0 = 2.5e-6 # m^4/(Js) from Schoenfelder 1997
     Q = 0.23 # Migration energy in eV
     # GBMobility = 0.0
@@ -77,13 +77,6 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
     type = EulerAngleFileReader
     file_name = grn_36_rand_2D.tex
   [../]
-  [./voronoi]
-    type = PolycrystalVoronoi
-    coloring_algorithm = jp
-
-    int_width = 5
-    rand_seed = 10
-  [../]
   [./grain_tracker]
     type = GrainTrackerMatProp # GrainTrackerElasticity
     threshold = 0.2
@@ -119,22 +112,20 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   dim = 2
   nx = 20
   ny = 20
-  xmax = 180
-  ymax = 180
+  xmax = 100
+  ymax = 100
   elem_type = QUAD4
+  uniform_refine = 2
 []
 
 [GlobalParams]
-  op_num = 5
+  op_num = 2
   var_name_base = gr
-  grain_num = 5
 
   displacements = 'disp_x disp_y'
 
   length_scale = 1.0e-9
   pressure_scale = 1.0e6
-
-  # grain_tracker = grain_tracker
 []
 
 [Variables]
@@ -152,11 +143,15 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
 
 [ICs]
   [./PolycrystalICs]
-    [./PolycrystalColoringIC]
-      polycrystal_ic_uo = voronoi
+    [./BicrystalBoundingBoxIC]
+      x1 = 0
+      y1 = 0
+      x2 = 50
+      y2 = 100
     [../]
   [../]
 []
+
 
 [AuxVariables]
   [./pk2]
@@ -294,8 +289,8 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
 [Functions]
   [./tdisp]
     type = ParsedFunction
-    # expression = '0.05*sin(2*pi*t)' # fatigue
-    expression = 'if (t<18,0.1*t,1.8)' # '0.1*t'
+    expression = '0.5*sin(2*pi*t)' # fatigue
+    # expression = 'if (t<10,0.1*t,1.0)' # 'if (t<90,0.1*t,9.0)'
   [../]
 []
 
@@ -382,8 +377,8 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
   start_time = 0.0
   # dt = 0.001
   dtmax = 0.2
-  end_time = 200
-  # num_steps = 3
+  end_time = 100
+  # num_steps = 10
   
   [./TimeStepper]
     type = IterationAdaptiveDT
@@ -393,7 +388,7 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
     optimal_iterations = 8
   [../]
   [./Adaptivity]
-    initial_adaptivity = 2
+    initial_adaptivity = 3
     refine_fraction = 0.8
     coarsen_fraction = 0.05
     max_h_level = 3
@@ -412,9 +407,8 @@ my_filename2 = "t2_gg_elastic_tensile_poly2"
     # interval = 100
     type = Nemesis
     additional_execute_on = 'FINAL'
-    use_displaced = true
     sync_only = true
-    sync_times = '1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17	18	19	20	21	22	23	24	25	26	27	28	29	30	31	32	33	34	35	36	37	38	39	40	41	42	43	44	45	46	47	48	49	50	51	52	53	54	55	56	57	58	59	60	61	62	63	64	65	66	67	68	69	70	71	72	73	74	75	76	77	78	79	80	81	82	83	84	85	86	87	88	89	90	91	92	93	94	95	96	97	98	99	100	101	102	103	104	105	106	107	108	109	110	111	112	113	114	115	116	117	118	119	120	121	122	123	124	125	126	127	128	129	130	131	132	133	134	135	136	137	138	139	140	141	142	143	144	145	146	147	148	149	150	151	152	153	154	155	156	157	158	159	160	161	162	163	164	165	166	167	168	169	170	171	172	173	174	175	176	177	178	179	180	181	182	183	184	185	186	187	188	189	190	191	192	193	194	195	196	197	198	199	200'
+    sync_times = '1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17	18	19	20	21	22	23	24	25	26	27	28	29	30	31	32	33	34	35	36	37	38	39	40	41	42	43	44	45	46	47	48	49	50	51	52	53	54	55	56	57	58	59	60	61	62	63	64	65	66	67	68	69	70	71	72	73	74	75	76	77	78	79	80	81	82	83	84	85	86	87	88	89	90	91	92	93	94	95	96	97	98	99	100'
   [../]
   [./csv]
     file_base = ./csv_${my_filename}/out_${my_filename}

@@ -1,6 +1,6 @@
-#include "MisorientationAngleCalculator.h"
+#include "MisoriAngleCalculator.h"
 
-namespace MisorientationAngleCalculator
+namespace MisoriAngleCalculator
 {
 
   MisorientationAngleData calculateMisorientaion(EulerAngles & Euler1, EulerAngles & Euler2, MisorientationAngleData & s, const CrystalType & crystal_type)
