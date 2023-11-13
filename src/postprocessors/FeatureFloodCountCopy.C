@@ -41,6 +41,7 @@ dataStore(std::ostream & stream, FeatureFloodCountCopy::FeatureData & feature, v
   storeHelper(stream, feature._periodic_nodes, context);
   storeHelper(stream, feature._var_index, context);
   storeHelper(stream, feature._id, context);
+  storeHelper(stream, feature._adjacent_id, context);
   storeHelper(stream, feature._bboxes, context);
   storeHelper(stream, feature._orig_ids, context);
   storeHelper(stream, feature._min_entity_id, context);
@@ -72,6 +73,7 @@ dataLoad(std::istream & stream, FeatureFloodCountCopy::FeatureData & feature, vo
   loadHelper(stream, feature._periodic_nodes, context);
   loadHelper(stream, feature._var_index, context);
   loadHelper(stream, feature._id, context);
+  loadHelper(stream, feature._adjacent_id, context);
   loadHelper(stream, feature._bboxes, context);
   loadHelper(stream, feature._orig_ids, context);
   loadHelper(stream, feature._min_entity_id, context);
@@ -93,7 +95,7 @@ dataLoad(std::istream & stream, BoundingBox & bbox, void * context)
 void updateBBoxExtremesHelper(BoundingBox & bbox, const Point & node);
 void updateBBoxExtremesHelper(BoundingBox & bbox, const Elem & elem);
 
-registerMooseObject("qinglongApp", FeatureFloodCountCopy);
+registerMooseObject("PhaseFieldApp", FeatureFloodCountCopy);
 
 InputParameters
 FeatureFloodCountCopy::validParams()
@@ -839,6 +841,63 @@ FeatureFloodCountCopy::getFeatureVar(unsigned int feature_id) const
   return invalid_id;
 }
 
+unsigned int
+FeatureFloodCountCopy::getFeatureID(unsigned int feature_id) const
+{   
+  if (feature_id >= _feature_id_to_local_index.size())
+    return invalid_id;
+
+  auto local_index = _feature_id_to_local_index[feature_id];
+  if (local_index != invalid_size_t)
+  {
+    mooseAssert(local_index < _feature_sets.size(), "local_index out of bounds");
+
+    return _feature_sets[local_index]._status != Status::INACTIVE
+               ? _feature_sets[local_index]._id
+               : invalid_id;
+  }
+
+  return invalid_id;
+}
+
+std::vector<unsigned int>
+FeatureFloodCountCopy::getAdjacentID(unsigned int feature_id) const
+{ 
+  std::vector<unsigned int> invalid_id_vector(10,invalid_id);
+
+  if (feature_id >= _feature_id_to_local_index.size())
+    return invalid_id_vector;
+
+  auto local_index = _feature_id_to_local_index[feature_id];
+  if (local_index != invalid_size_t)
+  {
+    mooseAssert(local_index < _feature_sets.size(), "local_index out of bounds");
+
+    return _feature_sets[local_index]._status != Status::INACTIVE
+               ? _feature_sets[local_index]._adjacent_id
+               : invalid_id_vector;
+  }
+  return invalid_id_vector;
+}
+
+unsigned int
+FeatureFloodCountCopy::getNumAdjacentGrains(unsigned int feature_id) const
+{   
+  if (feature_id >= _feature_id_to_local_index.size())
+    return invalid_id;
+
+  auto local_index = _feature_id_to_local_index[feature_id];
+  if (local_index != invalid_size_t)
+  {
+    mooseAssert(local_index < _feature_sets.size(), "local_index out of bounds");
+
+    return _feature_sets[local_index]._status != Status::INACTIVE
+               ? _feature_sets[local_index]._adjacent_id.size()
+               : invalid_id;
+  }
+  return invalid_id;
+}
+
 bool
 FeatureFloodCountCopy::doesFeatureIntersectBoundary(unsigned int feature_id) const
 {
@@ -1450,8 +1509,8 @@ Real FeatureFloodCountCopy::getConnectingThreshold(std::size_t /*current_index*/
 bool
 FeatureFloodCountCopy::compareValueWithThreshold(Real entity_value, Real threshold) const
 {
-  return ((_use_less_than_threshold_comparison && (entity_value >= threshold)) ||
-          (!_use_less_than_threshold_comparison && (entity_value <= threshold)));
+  return ((_use_less_than_threshold_comparison && (std::abs(entity_value) >= threshold)) ||
+          (!_use_less_than_threshold_comparison && (std::abs(entity_value) <= threshold)));
 }
 
 bool

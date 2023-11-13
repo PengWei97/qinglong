@@ -366,6 +366,9 @@ GrainTrackerCopy::finalize()
    */
   broadcastAndUpdateGrainData();
 
+  if (_merge_grains_based_misorientaion && (_t_step > _tracking_step) && (_t_step < 40))
+    remapMisorientedGrains();
+
   /**
    * Remap Grains
    */
@@ -383,6 +386,13 @@ GrainTrackerCopy::finalize()
   if (_verbosity_level > 0)
     _console << "Finished inside of GrainTrackerCopy\n" << std::endl;
 }
+
+void
+GrainTrackerCopy::mergeGrainsBasedMisorientation()
+{
+  _console << "This function needs to be defined in the derived class\n" << std::endl;
+}
+
 
 void
 GrainTrackerCopy::broadcastAndUpdateGrainData()
@@ -809,7 +819,7 @@ GrainTrackerCopy::trackGrains()
         // Must be a nucleating grain (status is still not set)
         if (grain._status == Status::CLEAR)
         {
-          auto new_index = getNextUniqueID();
+          auto new_index = 10; // getNextUniqueID();
           grain._id = new_index;          // Set the ID
           grain._status = Status::MARKED; // Mark it
 
@@ -822,6 +832,10 @@ GrainTrackerCopy::trackGrains()
         }
       }
     }
+
+    // The reason for _t_step > 2 is to allow reasonable refinement of the mesh at grain boundaries.
+    if (_merge_grains_based_misorientaion && (_t_step > 2) && (_t_step < 40))
+      mergeGrainsBasedMisorientation();
 
     // Case 2 (inactive grains in _feature_sets_old)
     for (auto & grain : _feature_sets_old)
@@ -1172,6 +1186,11 @@ GrainTrackerCopy::remapGrains()
     if (_verbosity_level > 1)
       _console << "Swaps complete" << std::endl;
   }
+}
+
+void
+GrainTrackerCopy::remapMisorientedGrains()
+{
 }
 
 void
