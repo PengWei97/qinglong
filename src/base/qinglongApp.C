@@ -27,6 +27,7 @@ qinglongApp::registerAll(Factory & f, ActionFactory & af, Syntax & s)
   Registry::registerActionsTo(af, {"qinglongApp"});
 
   /* register custom execute flags, action syntax, etc. here */
+  s.registerActionSyntax("PolycrystalStoredEnergyEBSDAction", "Kernels/PolycrystalStoredEnergyEBSD");
   s.registerActionSyntax("PolyElasticEnergyDrivingCplAction", "Kernels/PolyElasticEnergyDrivingCpl");
 }
 
