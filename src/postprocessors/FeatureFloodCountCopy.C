@@ -93,7 +93,7 @@ dataLoad(std::istream & stream, BoundingBox & bbox, void * context)
 void updateBBoxExtremesHelper(BoundingBox & bbox, const Point & node);
 void updateBBoxExtremesHelper(BoundingBox & bbox, const Elem & elem);
 
-registerMooseObject("PhaseFieldApp", FeatureFloodCountCopy);
+registerMooseObject("qinglongApp", FeatureFloodCountCopy);
 
 InputParameters
 FeatureFloodCountCopy::validParams()
