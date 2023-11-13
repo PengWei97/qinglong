@@ -35,7 +35,7 @@ ACSEDGPolyEBSD::ACSEDGPolyEBSD(const InputParameters & parameters)
     _concurrent_recovery(getParam<bool>("concurrent_recovery")),  
     _beta(getMaterialProperty<Real>("beta")),
     _rho_eff(getMaterialProperty<Real>("rho_eff")),
-    _grain_tracker(getUserObject<GrainTrackerInterfaceCopy>("grain_tracker")),
+    _grain_tracker(getUserObject<GrainTrackerInterface>("grain_tracker")),
     _GNDs_provider(getUserObject<EBSDReader>("GNDs_provider")),
     _op_index(getParam<unsigned int>("op_index"))
 {
@@ -58,7 +58,7 @@ ACSEDGPolyEBSD::computeDFDOP(PFFunctionType type)
   for (MooseIndex(op_to_grain) op_index = 0; op_index < op_to_grain.size(); ++op_index)
   {
 
-    if (op_to_grain[op_index] == FeatureFloodCountCopy::invalid_id)
+    if (op_to_grain[op_index] == FeatureFloodCount::invalid_id)
       continue;
 
     num_vaild_grain += 1;
@@ -102,7 +102,7 @@ ACSEDGPolyEBSD::getGNDsFromEBSD(const unsigned int & grain_id)
   //   rho_i = 3.0 * _GNDs_provider.getAvgData(grain_id)._custom[0] * (_length_scale * _length_scale);
   // else if (grain_id == 127) // TODO: need to merge based on EBSD data
   //   rho_i = 0.5 * (_GNDs_provider.getAvgData(grain_id)._custom[0] + _GNDs_provider.getAvgData(129)._custom[0]) * (_length_scale * _length_scale);
-  if (grain_id != FeatureFloodCountCopy::invalid_id && grain_id < _GNDs_provider.getGrainNum())
+  if (grain_id != FeatureFloodCount::invalid_id && grain_id < _GNDs_provider.getGrainNum())
     rho_i = _GNDs_provider.getAvgData(grain_id)._custom[0] * (_length_scale * _length_scale);
 
   // concurrent recovery

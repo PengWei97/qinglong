@@ -7,13 +7,13 @@
 //* Licensed under LGPL 2.1, please see LICENSE for details
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
-#include "EBSDDeformedGrainMaterial.h"
-#include "GrainTrackerInterfaceCopy.h"
+#include "DeformedGrainEBSDMaterial.h"
+#include "GrainTrackerInterface.h"
 
-registerMooseObject("yinglongApp", EBSDDeformedGrainMaterial);
+registerMooseObject("qinglongApp", DeformedGrainEBSDMaterial);
 
 InputParameters
-EBSDDeformedGrainMaterial::validParams()
+DeformedGrainEBSDMaterial::validParams()
 {
   InputParameters params = Material::validParams();
   params.addRequiredCoupledVarWithAutoBuild(
@@ -25,12 +25,12 @@ EBSDDeformedGrainMaterial::validParams()
   params.addParam<Real>("stored_factor", 0.5, "the scaling factor in stored energy function"); 
   params.addParam<bool>("concurrent_recovery", false, "The concurrent recovery would be considered if true");
   params.addRequiredParam<UserObjectName>("grain_tracker",
-                                          "The GrainTrackerCopy UserObject to get values from.");
+                                          "The GrainTracker UserObject to get values from.");
   params.addRequiredParam<UserObjectName>("GNDs_provider", "GNDs provider for EBSD reader");
   return params;
 }
 
-EBSDDeformedGrainMaterial::EBSDDeformedGrainMaterial(const InputParameters & parameters)
+DeformedGrainEBSDMaterial::DeformedGrainEBSDMaterial(const InputParameters & parameters)
   : Material(parameters),
     _op_num(coupledComponents("v")),
     _vals(coupledValues("v")),
@@ -43,7 +43,7 @@ EBSDDeformedGrainMaterial::EBSDDeformedGrainMaterial(const InputParameters & par
     _concurrent_recovery(getParam<bool>("concurrent_recovery")),
     _beta(declareProperty<Real>("beta")),
     _rho_eff(declareProperty<Real>("rho_eff")),
-    _grain_tracker(getUserObject<GrainTrackerInterfaceCopy>("grain_tracker")),
+    _grain_tracker(getUserObject<GrainTrackerInterface>("grain_tracker")),
     _GNDs_provider(getUserObject<EBSDReader>("GNDs_provider"))
 {
   if (_op_num == 0)
@@ -51,7 +51,7 @@ EBSDDeformedGrainMaterial::EBSDDeformedGrainMaterial(const InputParameters & par
 }
 
 void
-EBSDDeformedGrainMaterial::computeQpProperties()
+DeformedGrainEBSDMaterial::computeQpProperties()
 {
 
   Real SumEtai2 = 0.0;
@@ -66,7 +66,7 @@ EBSDDeformedGrainMaterial::computeQpProperties()
   for (MooseIndex(op_to_grains) op_index = 0; op_index < op_to_grains.size(); ++op_index)
   {
     auto grain_id = op_to_grains[op_index];
-    if (op_to_grains[op_index] == FeatureFloodCountCopy::invalid_id)
+    if (op_to_grains[op_index] == FeatureFloodCount::invalid_id)
       continue;
 
     rho_i = getGNDsFromEBSD(grain_id);
@@ -80,7 +80,7 @@ EBSDDeformedGrainMaterial::computeQpProperties()
 }
 
 Real
-EBSDDeformedGrainMaterial::getGNDsFromEBSD(const unsigned int & grain_id)
+DeformedGrainEBSDMaterial::getGNDsFromEBSD(const unsigned int & grain_id)
 {  
   auto & time_current = _fe_problem.time(); // current simulation time s
 

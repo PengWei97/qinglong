@@ -11,7 +11,7 @@
 
 #include "ACBulk.h"
 #include "Material.h"
-#include "GrainTrackerInterfaceCopy.h"
+#include "GrainTrackerInterface.h"
 #include "EBSDReader.h"
 
 /**
@@ -25,7 +25,7 @@
  */
 
 // Forward Declarations
-class GrainTrackerInterfaceCopy;
+class GrainTrackerInterface;
 
 class ACSEDGPolyEBSD : public ACBulk<Real>
 {
@@ -53,7 +53,7 @@ protected:
   const MaterialProperty<Real> & _rho_eff;
 
   /// Grain tracker object
-  const GrainTrackerInterfaceCopy & _grain_tracker;
+  const GrainTrackerInterface & _grain_tracker;
 
   /// Grain tracker object
   const EBSDReader & _GNDs_provider;

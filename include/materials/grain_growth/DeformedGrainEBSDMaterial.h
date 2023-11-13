@@ -13,19 +13,19 @@
 #include "EBSDReader.h"
 
 // Forward Declarations
-class GrainTrackerInterfaceCopy;
+class GrainTrackerInterface;
 
 /**
  * Calculates the Deformation Energy associated with a specific geometrically necessary 
  * dislocation density (GNDs) from EBSD data file.
  * MaterialProperty [_beta, _rho_eff] are used to calculated the stored energy.
  */
-class EBSDDeformedGrainMaterial : public Material
+class DeformedGrainEBSDMaterial : public Material
 {
 public:
   static InputParameters validParams();
 
-  EBSDDeformedGrainMaterial(const InputParameters & parameters);
+  DeformedGrainEBSDMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeQpProperties();
@@ -46,6 +46,6 @@ protected:
   MaterialProperty<Real> & _beta;
   MaterialProperty<Real> & _rho_eff; // the average effective dislocation density
  
-  const GrainTrackerInterfaceCopy & _grain_tracker; // Grain tracker object
+  const GrainTrackerInterface & _grain_tracker; // Grain tracker object
   const EBSDReader & _GNDs_provider;
 };
