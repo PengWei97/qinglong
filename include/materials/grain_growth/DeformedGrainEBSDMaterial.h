@@ -42,7 +42,14 @@ protected:
   const Real _stored_factor;
   const Real _JtoeV; // Joule to eV conversion
   const bool _concurrent_recovery;
- 
+
+  // concurrent recovery function
+  const Real _rho_end_l2;
+  const Real  _rho_end_l3;
+  const Real _rho_critical;
+  const Real _a_rho_l2;
+  const Real _a_rho_l3;
+
   MaterialProperty<Real> & _beta;
   MaterialProperty<Real> & _rho_eff; // the average effective dislocation density
  
