@@ -164,7 +164,7 @@
   [Kernels]
     [./PolycrystalKernel]
     [../]
-    [./PolycrystalStoredEnergyEBSD]
+    [./PolyStoredEnergyEBSD]
       # ACSEDGPolyEBSD
       GNDs_provider = ebsd_reader
     [../]

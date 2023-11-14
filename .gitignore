@@ -4,7 +4,6 @@
 *.tess
 *.tgz
 *.bz2
-job*.sh
 .libs
 *.la
 *.lo
