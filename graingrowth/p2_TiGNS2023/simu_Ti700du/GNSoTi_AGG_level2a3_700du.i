@@ -301,7 +301,6 @@
     [../]
     [./csv]
       file_base = ./csv_${my_filename}/out_${my_filename}
-      # interval = 5
       type = CSV
     [../]
     print_linear_residuals = false

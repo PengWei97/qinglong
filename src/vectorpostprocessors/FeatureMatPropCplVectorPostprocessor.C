@@ -32,6 +32,7 @@ FeatureMatPropCplVectorPostprocessor::execute()
   FeatureDataVectorPostprocessor::execute();
 
   const auto num_features = _feature_counter.getTotalFeatureCount();
+
   // Reset the state variables vector
   _slip_resistances.resize(num_features);
   _backstresses.resize(num_features);
@@ -42,21 +43,21 @@ FeatureMatPropCplVectorPostprocessor::execute()
   }
 
   for (const auto & elem : _mesh.getMesh().active_local_element_ptr_range())
-    {
-      _fe_problem.setCurrentSubdomainID(elem, 0);
-      _fe_problem.prepare(elem, 0);
-      _fe_problem.reinitElem(elem, 0);
+  {
+    _fe_problem.setCurrentSubdomainID(elem, 0);
+    _fe_problem.prepare(elem, 0);
+    _fe_problem.reinitElem(elem, 0);
 
-      /**
-       * Here we retrieve the var to features vector on the current element.
-       * We'll use that information to figure out which variables are non-zero
-       * (from a threshold perspective) then we can sum those values into
-       * appropriate grain index locations.
-       */
-      const auto & var_to_features = _feature_counter.getVarToFeatureVector(elem->id());
+    /**
+     * Here we retrieve the var to features vector on the current element.
+     * We'll use that information to figure out which variables are non-zero
+     * (from a threshold perspective) then we can sum those values into
+     * appropriate grain index locations.
+     */
+    const auto & var_to_features = _feature_counter.getVarToFeatureVector(elem->id());
 
-      accumulateStateVariables(elem, var_to_features, num_features);
-    }
+    accumulateStateVariables(elem, var_to_features, num_features);
+  }
 }
 
 void

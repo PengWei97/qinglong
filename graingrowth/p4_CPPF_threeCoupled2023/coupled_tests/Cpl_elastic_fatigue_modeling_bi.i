@@ -1,5 +1,5 @@
-my_filename = "t2_gg_elastic_fatigue_bi"
-my_filename2 = "t2_gg_elastic_fatigue_bi"
+my_filename = "t0_gg_elastic_fatigue_bi"
+my_filename2 = "t0_gg_elastic_fatigue_bi"
 
 [Materials]
   [./Copper]
@@ -16,11 +16,11 @@ my_filename2 = "t2_gg_elastic_fatigue_bi"
     # time_scale = 1.0
   [../]
   [./ElasticityTensor]
-    type = ComputePolyElasticTensorCpl # ComputePolycrystalElasticiyTensor
+    type = ComputePolyElasticTensorCpl
     grain_tracker = grain_tracker
   [../]
   [./stress]
-    type = ComputeMultCPStressCpl # ComputeMultipleCrystalPlasticityStress ComputeMultCPStressCpl
+    type = ComputeMultCPStressCpl
     crystal_plasticity_models = 'trial_xtalpl'
     tan_mod_type = exact
     use_line_search = true
@@ -30,7 +30,7 @@ my_filename2 = "t2_gg_elastic_fatigue_bi"
     # maximum_substep_iteration = 25 # Maximum number of substep iteration
   [../]
   [./trial_xtalpl]
-    type = CPKalidindiBSCplUpdate # CrystalPlasticityKalidindiUpdate
+    type = CPKalidindiBSCplUpdate
     crystal_lattice_type = FCC
     number_slip_systems = 12 
     slip_sys_file_name = input_slip_sys.txt
@@ -64,7 +64,7 @@ my_filename2 = "t2_gg_elastic_fatigue_bi"
     # ACGrGrPoly ACInterface TimeDerivative
   [../]
   [./PolycrystalElasticDrivingForce]
-      # ACGrGrElasticDrivingForce ~ todo
+    # ACGrGrElasticDrivingForces
   [../]
   [./TensorMechanics]
     use_displaced_mesh = true
@@ -97,8 +97,10 @@ my_filename2 = "t2_gg_elastic_fatigue_bi"
 
 [VectorPostprocessors]
   [./grain_volumes]
-    type = FeatureMatPropCplVectorPostprocessor # FeatureVolumeVectorPostprocessor FeatureMatPropCplVectorPostprocessor
+    type = FeatureMatPropCplVectorPostprocessor
     flood_counter = grain_tracker
+
+    number_slip_systems = 12
     # mat_prop = elastic_energy
     execute_on = 'INITIAL TIMESTEP_BEGIN' 
     # 'INITIAL TIMESTEP_BEGIN LINEAR NONLINEAR'

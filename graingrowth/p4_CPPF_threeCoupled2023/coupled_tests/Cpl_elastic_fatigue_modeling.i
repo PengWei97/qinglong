@@ -1,5 +1,5 @@
-my_filename = "t2_gg_elastic_tensile_poly2"
-my_filename2 = "t2_gg_elastic_tensile_poly2"
+my_filename = "t0_gg_elastic_tensile_poly2"
+my_filename2 = "t0_gg_elastic_tensile_poly2"
 
 [Materials]
   [./Copper]
